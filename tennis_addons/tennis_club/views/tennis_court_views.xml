@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- List View -->
+    <record id="view_tennis_court_list" model="ir.ui.view">
+        <field name="name">tennis.court.list</field>
+        <field name="model">tennis.court</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="center_id"/>
+                <field name="surface_type"/>
+                <field name="court_type"/>
+                <field name="has_lighting"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_tennis_court_form" model="ir.ui.view">
+        <field name="name">tennis.court.form</field>
+        <field name="model">tennis.court</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="active" widget="boolean_button"
+                               options="{'terminology': 'active'}"/>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Court name..."/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="center_id"/>
+                            <field name="surface_type"/>
+                        </group>
+                        <group>
+                            <field name="court_type"/>
+                            <field name="has_lighting"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notes" placeholder="Notes..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Search View -->
+    <record id="view_tennis_court_search" model="ir.ui.view">
+        <field name="name">tennis.court.search</field>
+        <field name="model">tennis.court</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="center_id"/>
+                <filter string="Indoor" name="filter_indoor" 
+                        domain="[('court_type', '=', 'indoor')]"/>
+                <filter string="Outdoor" name="filter_outdoor" 
+                        domain="[('court_type', '=', 'outdoor')]"/>
+                <filter string="Has Lighting" name="filter_lighting" 
+                        domain="[('has_lighting', '=', True)]"/>
+                <separator/>
+                <filter string="Active" name="filter_active" 
+                        domain="[('active', '=', True)]"/>
+                <filter string="Inactive" name="filter_inactive" 
+                        domain="[('active', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Center" name="group_center" 
+                            context="{'group_by': 'center_id'}"/>
+                    <filter string="Surface Type" name="group_surface" 
+                            context="{'group_by': 'surface_type'}"/>
+                    <filter string="Court Type" name="group_type" 
+                            context="{'group_by': 'court_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_tennis_court" model="ir.actions.act_window">
+        <field name="name">Courts</field>
+        <field name="res_model">tennis.court</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first tennis court
+            </p>
+        </field>
+    </record>
+</odoo>

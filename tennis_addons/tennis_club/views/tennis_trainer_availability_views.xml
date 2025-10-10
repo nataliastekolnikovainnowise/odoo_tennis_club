@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- List View -->
+    <record id="view_tennis_trainer_availability_list" model="ir.ui.view">
+        <field name="name">tennis.trainer.availability.list</field>
+        <field name="model">tennis.trainer.availability</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="trainer_id"/>
+                <field name="date"/>
+                <field name="time_from"/>
+                <field name="time_to"/>
+                <field name="is_available"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_tennis_trainer_availability_form" model="ir.ui.view">
+        <field name="name">tennis.trainer.availability.form</field>
+        <field name="model">tennis.trainer.availability</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="trainer_id"/>
+                            <field name="date"/>
+                            <field name="is_available"/>
+                        </group>
+                        <group>
+                            <field name="time_from"/>
+                            <field name="time_to"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notes" placeholder="Notes..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Calendar View -->
+    <record id="view_tennis_trainer_availability_calendar" model="ir.ui.view">
+        <field name="name">tennis.trainer.availability.calendar</field>
+        <field name="model">tennis.trainer.availability</field>
+        <field name="arch" type="xml">
+            <calendar string="Trainer Availability" 
+                      date_start="time_from" 
+                      date_stop="time_to"
+                      color="trainer_id"
+                      mode="week">
+                <field name="trainer_id"/>
+                <field name="is_available"/>
+            </calendar>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_tennis_trainer_availability" model="ir.actions.act_window">
+        <field name="name">Trainer Availability</field>
+        <field name="res_model">tennis.trainer.availability</field>
+        <field name="view_mode">calendar,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Set up trainer availability schedule
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menu Item -->
+</odoo>

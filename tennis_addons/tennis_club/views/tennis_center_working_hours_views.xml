@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- List View -->
+    <record id="view_tennis_center_working_hours_list" model="ir.ui.view">
+        <field name="name">tennis.center.working.hours.list</field>
+        <field name="model">tennis.center.working.hours</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="center_id"/>
+                <field name="day_of_week"/>
+                <field name="time_from" widget="float_time"/>
+                <field name="time_to" widget="float_time"/>
+                <field name="is_closed"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_tennis_center_working_hours_form" model="ir.ui.view">
+        <field name="name">tennis.center.working.hours.form</field>
+        <field name="model">tennis.center.working.hours</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="center_id"/>
+                            <field name="day_of_week"/>
+                        </group>
+                        <group>
+                            <field name="is_closed"/>
+                            <field name="time_from" widget="float_time" invisible="is_closed"/>
+                            <field name="time_to" widget="float_time" invisible="is_closed"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_tennis_center_working_hours" model="ir.actions.act_window">
+        <field name="name">Working Hours</field>
+        <field name="res_model">tennis.center.working.hours</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Set up working hours for tennis centers
+            </p>
+        </field>
+    </record>
+
+</odoo>

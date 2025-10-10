@@ -1,0 +1,14 @@
+# -*- coding: utf-8 -*-
+from . import tennis_training_type
+from . import tennis_center
+from . import tennis_court
+from . import tennis_center_working_hours
+from . import hr_employee
+from . import tennis_trainer_availability
+from . import res_partner
+from . import tennis_trainer_rate
+from . import tennis_center_price
+from . import court_schedule_status
+from . import court_schedule
+from . import tennis_training_session
+from . import tennis_trainer_revenue_report

@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Odoo
+data/filestore/
+data/sessions/
+logs/*.log
+backups/*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

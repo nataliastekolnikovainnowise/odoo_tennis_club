@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <record id="view_court_schedule_list" model="ir.ui.view">
+        <field name="name">court.schedule.list</field>
+        <field name="model">court.schedule</field>
+        <field name="arch" type="xml">
+            <list string="Court Schedule">
+                <field name="court_id"/>
+                <field name="date"/>
+                <field name="time_from"/>
+                <field name="time_to"/>
+                <field name="status_id"/>
+            </list>
+        </field>
+    </record>
+    
+    <record id="view_court_schedule_form" model="ir.ui.view">
+        <field name="name">court.schedule.form</field>
+        <field name="model">court.schedule</field>
+        <field name="arch" type="xml">
+            <form string="Court Schedule">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="court_id"/>
+                            <field name="date"/>
+                        </group>
+                        <group>
+                            <field name="time_from"/>
+                            <field name="time_to"/>
+                            <field name="status_id"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <record id="view_court_schedule_calendar" model="ir.ui.view">
+        <field name="name">court.schedule.calendar</field>
+        <field name="model">court.schedule</field>
+        <field name="arch" type="xml">
+            <calendar string="Court Schedule" 
+                      date_start="time_from" 
+                      date_stop="time_to"
+                      color="court_id"
+                      event_open_popup="true">
+                <field name="court_id"/>
+                <field name="status_id"/>
+            </calendar>
+        </field>
+    </record>
+    
+    <record id="action_court_schedule" model="ir.actions.act_window">
+        <field name="name">Court Schedule</field>
+        <field name="res_model">court.schedule</field>
+        <field name="view_mode">calendar,list,form</field>
+    </record>
+
+</odoo>

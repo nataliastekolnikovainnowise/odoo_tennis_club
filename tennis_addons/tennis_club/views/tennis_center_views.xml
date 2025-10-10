@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- List View -->
+    <record id="view_tennis_center_list" model="ir.ui.view">
+        <field name="name">tennis.center.list</field>
+        <field name="model">tennis.center</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="manager_id"/>
+                <field name="phone"/>
+                <field name="courts_count"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_tennis_center_form" model="ir.ui.view">
+        <field name="name">tennis.center.form</field>
+        <field name="model">tennis.center</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Center Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="manager_id"/>
+                            <field name="courts_count"/>
+                        </group>
+                        <group>
+                            <field name="phone"/>
+                            <field name="email"/>
+                            <field name="address"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Working Hours">
+                            <field name="working_hours_ids">
+                                <list editable="bottom">
+                                    <field name="day_of_week"/>
+                                    <field name="is_closed"/>
+                                    <field name="time_from" widget="float_time" invisible="is_closed"/>
+                                    <field name="time_to" widget="float_time" invisible="is_closed"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Courts">
+                            <field name="court_ids">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="surface_type"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Prices">
+                            <field name="price_ids">
+                                <list editable="bottom">
+                                    <field name="training_type_id"/>
+                                    <field name="price" widget="monetary"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                    <group>
+                        <field name="notes" placeholder="Additional notes..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_tennis_center" model="ir.actions.act_window">
+        <field name="name">Centers</field>
+        <field name="res_model">tennis.center</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first tennis center
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menu Item -->
+</odoo>

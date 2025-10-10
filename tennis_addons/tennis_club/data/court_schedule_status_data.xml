@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        
+        <record id="status_available" model="court.schedule.status">
+            <field name="name">Available</field>
+            <field name="sequence">1</field>
+            <field name="fold">0</field>
+            <field name="description">Slot is available for booking</field>
+        </record>
+        
+        <record id="status_booked" model="court.schedule.status">
+            <field name="name">Booked</field>
+            <field name="sequence">2</field>
+            <field name="fold">0</field>
+            <field name="description">Slot is booked by a training session</field>
+        </record>
+        
+        <record id="status_blocked" model="court.schedule.status">
+            <field name="name">Blocked</field>
+            <field name="sequence">3</field>
+            <field name="fold">1</field>
+            <field name="description">Slot is blocked for maintenance</field>
+        </record>
+        
+    </data>
+</odoo>

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Extend Employee Form View -->
+    <record id="view_employee_form_trainer" model="ir.ui.view">
+        <field name="name">hr.employee.form.trainer</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.view_employee_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Trainer Info" invisible="not is_trainer">
+                    <group>
+                        <group>
+                            <field name="center_id"/>
+                            <field name="training_session_count"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="total_revenue" widget="monetary"/>
+                        </group>
+                    </group>
+                    <group string="Hourly Rates by Training Type">
+                        <field name="trainer_rate_ids" nolabel="1">
+                            <list editable="bottom">
+                                <field name="training_type_id"/>
+                                <field name="hourly_rate" widget="monetary"/>
+                                <field name="currency_id" invisible="1"/>
+                            </list>
+                        </field>
+                    </group>
+                </page>
+            </xpath>
+            <xpath expr="//field[@name='work_email']" position="after">
+                <field name="is_trainer"/>
+            </xpath>
+        </field>
+    </record>
+    
+    <!-- Trainers List View -->
+    <record id="view_trainer_list" model="ir.ui.view">
+        <field name="name">hr.employee.trainer.list</field>
+        <field name="model">hr.employee</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="center_id"/>
+                <field name="work_email"/>
+                <field name="mobile_phone"/>
+                <field name="is_trainer" invisible="1"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Trainers Action -->
+    <record id="action_trainer" model="ir.actions.act_window">
+        <field name="name">Trainers</field>
+        <field name="res_model">hr.employee</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_trainer', '=', True)]</field>
+        <field name="context">{'default_is_trainer': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add your first trainer
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menu Item -->
+</odoo>

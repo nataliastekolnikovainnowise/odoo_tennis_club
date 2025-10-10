@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- List View -->
+    <record id="view_tennis_trainer_rate_list" model="ir.ui.view">
+        <field name="name">tennis.trainer.rate.list</field>
+        <field name="model">tennis.trainer.rate</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="trainer_id"/>
+                <field name="training_type_id"/>
+                <field name="hourly_rate" widget="monetary"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_tennis_trainer_rate_form" model="ir.ui.view">
+        <field name="name">tennis.trainer.rate.form</field>
+        <field name="model">tennis.trainer.rate</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="trainer_id"/>
+                        <field name="training_type_id"/>
+                        <field name="hourly_rate"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_tennis_trainer_rate" model="ir.actions.act_window">
+        <field name="name">Trainer Rates</field>
+        <field name="res_model">tennis.trainer.rate</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    
+</odoo>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Report Wizard Form View -->
+    <record id="view_tennis_trainer_revenue_report_form" model="ir.ui.view">
+        <field name="name">tennis.trainer.revenue.report.form</field>
+        <field name="model">tennis.trainer.revenue.report</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <group>
+                        <field name="date_from"/>
+                        <field name="date_to"/>
+                    </group>
+                    <group>
+                        <field name="trainer_id"/>
+                    </group>
+                </group>
+                
+                <group string="Revenue Report">
+                    <field name="line_ids" nolabel="1"/>
+                </group>
+                
+                <footer>
+                    <button string="Generate Report" name="action_generate_report" type="object" class="oe_highlight"/>
+                    <button string="Close" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Report Line List View -->
+    <record id="view_tennis_trainer_revenue_report_line_list" model="ir.ui.view">
+        <field name="name">tennis.trainer.revenue.report.line.list</field>
+        <field name="model">tennis.trainer.revenue.report.line</field>
+        <field name="arch" type="xml">
+            <list decoration-success="total_revenue &gt; 100" decoration-info="total_revenue &gt; 50">
+                <field name="trainer_id"/>
+                <field name="session_count"/>
+                <field name="total_trainer_cost" widget="monetary"/>
+                <field name="total_revenue" widget="monetary"/>
+                <field name="currency_id" column_invisible="1"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_tennis_trainer_revenue_report" model="ir.actions.act_window">
+        <field name="name">Trainer Revenue Report</field>
+        <field name="res_model">tennis.trainer.revenue.report</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,48 @@
+# -*- coding: utf-8 -*-
+{
+    "name": "Tennis Club Management",
+    "version": "18.0.1.0.0",
+    "category": "Sports",
+    "summary": "Tennis club network management system",
+    "description": """
+        Tennis Club Management System:
+        - Sports centers and courts management
+        - Training schedule management
+        - Trainers and clients management
+        - Financial analytics
+    """,
+    "author": "Natalia Stekolnikova",
+    "license": "LGPL-3",
+    "depends": [
+        "base",
+        "hr",
+        "contacts",
+    ],
+    "data": [
+        # ВАЖНО: security.xml ПЕРЕД access.csv!
+        "security/tennis_club_security.xml",
+        "security/ir.model.access.csv",
+        # Данные
+        "data/tennis_training_type_data.xml",
+        "data/tennis_training_session_sequence.xml",
+        "data/court_schedule_status_data.xml",
+        # Views
+        "views/tennis_training_type_views.xml",
+        "views/court_schedule_views.xml",
+        "views/tennis_center_views.xml",
+        "views/tennis_court_views.xml",
+        "views/tennis_center_working_hours_views.xml",
+        "views/hr_employee_views.xml",
+        "views/tennis_trainer_availability_views.xml",
+        "views/res_partner_views.xml",
+        "views/tennis_trainer_rate_views.xml",
+        "views/tennis_center_price_views.xml",
+        "views/tennis_training_session_views.xml",
+        "views/tennis_trainer_revenue_report_views.xml",
+        "views/tennis_menu.xml",
+    ],
+    "demo": [],
+    "installable": True,
+    "application": True,
+    "auto_install": False,
+}

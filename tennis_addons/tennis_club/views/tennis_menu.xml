@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Main Menu -->
+    <menuitem id="menu_tennis_club_root"
+              name="Tennis Clubs"
+              sequence="10"
+              web_icon="tennis_club,static/description/icon.png"/>
+    
+    <!-- Courts Submenu -->
+    <menuitem id="menu_tennis_club_courts"
+              name="Courts"
+              parent="menu_tennis_club_root"
+              sequence="10"/>
+    
+    <menuitem id="menu_tennis_court"
+              name="Courts"
+              parent="menu_tennis_club_courts"
+              action="action_tennis_court"
+              sequence="10"/>
+    
+    <menuitem id="menu_court_schedule"
+              name="Court Schedule"
+              parent="menu_tennis_club_courts"
+              action="action_court_schedule"
+              sequence="20"/>
+    
+    <menuitem id="menu_tennis_center_working_hours"
+              name="Working Hours"
+              parent="menu_tennis_club_courts"
+              action="action_tennis_center_working_hours"
+              sequence="30"/>
+    
+    <!-- Training Submenu -->
+    <menuitem id="menu_tennis_club_training"
+              name="Training"
+              parent="menu_tennis_club_root"
+              sequence="20"/>
+    
+    <menuitem id="menu_tennis_training_type"
+              name="Training Types"
+              parent="menu_tennis_club_training"
+              action="action_tennis_training_type"
+              sequence="10"/>
+    
+    <menuitem id="menu_tennis_training_session"
+              name="Training Sessions"
+              parent="menu_tennis_club_training"
+              action="action_tennis_training_session"
+              sequence="20"/>
+    
+    <!-- People Submenu -->
+    <menuitem id="menu_tennis_club_people"
+              name="People"
+              parent="menu_tennis_club_root"
+              sequence="30"/>
+    
+    <menuitem id="menu_tennis_trainer"
+              name="Trainers"
+              parent="menu_tennis_club_people"
+              action="action_trainer"
+              sequence="10"/>
+    
+    <menuitem id="menu_tennis_trainer_availability"
+              name="Trainer Availability"
+              parent="menu_tennis_club_people"
+              action="action_tennis_trainer_availability"
+              sequence="20"/>
+    
+    <menuitem id="menu_tennis_client"
+              name="Clients"
+              parent="menu_tennis_club_people"
+              action="action_client"
+              sequence="30"/>
+    
+    <!-- Configuration Submenu -->
+    <menuitem id="menu_tennis_club_config"
+              name="Configuration"
+              parent="menu_tennis_club_root"
+              sequence="40"/>
+    
+    <menuitem id="menu_tennis_center"
+              name="Centers"
+              parent="menu_tennis_club_config"
+              action="action_tennis_center"
+              sequence="10"/>
+    
+    <menuitem id="menu_tennis_trainer_rate"
+              name="Trainer Rates"
+              parent="menu_tennis_club_config"
+              action="action_tennis_trainer_rate"
+              sequence="20"/>
+    
+    <menuitem id="menu_tennis_center_price"
+              name="Center Prices"
+              parent="menu_tennis_club_config"
+              action="action_tennis_center_price"
+              sequence="30"/>
+    
+    <!-- Reports Submenu -->
+    <menuitem id="menu_tennis_club_reports"
+              name="Reports"
+              parent="menu_tennis_club_root"
+              sequence="50"/>
+    
+    <menuitem id="menu_trainer_revenue_report"
+              name="Trainer Revenue"
+              parent="menu_tennis_club_reports"
+              action="action_tennis_trainer_revenue_report"
+              sequence="10"/>
+
+</odoo>

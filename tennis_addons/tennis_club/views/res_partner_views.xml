@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Extend Partner Form View -->
+    <record id="view_partner_form_client" model="ir.ui.view">
+        <field name="name">res.partner.form.client</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='category_id']" position="after">
+                <field name="is_client"/>
+                <field name="client_type" invisible="not is_client"/>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="Client Info" invisible="not is_client">
+                    <group>
+                        <group>
+                            <field name="balance" widget="monetary"/>
+                            <field name="training_count"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="client_notes" placeholder="Additional client information..."/>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+    
+    <!-- Clients List View -->
+    <record id="view_client_list" model="ir.ui.view">
+        <field name="name">res.partner.client.list</field>
+        <field name="model">res.partner</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="client_type"/>
+                <field name="balance" widget="monetary"/>
+                <field name="training_count"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Clients Action -->
+    <record id="action_client" model="ir.actions.act_window">
+        <field name="name">Clients</field>
+        <field name="res_model">res.partner</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('is_client', '=', True)]</field>
+        <field name="context">{'default_is_client': True}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Add your first client
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menu Item -->
+</odoo>

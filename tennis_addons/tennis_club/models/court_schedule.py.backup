@@ -1,0 +1,275 @@
+"""Tennis Court Schedule Model."""
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+
+
+class CourtSchedule(models.Model):
+    """Court Schedule - manages time slots for all courts."""
+    
+    _name = "court.schedule"
+    _description = "Tennis Court Schedule"
+    _order = "date desc, time_from desc"
+    _rec_name = "display_name"
+    
+    # Core fields
+    court_id = fields.Many2one(
+        comodel_name="tennis.court",
+        string="Court",
+        required=True,
+        ondelete="cascade",
+        index=True,
+    )
+    
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Sports Center",
+        related="court_id.center_id",
+        store=True,
+        index=True,
+    )
+    
+    date = fields.Date(
+        string="Date",
+        required=True,
+        index=True,
+    )
+    
+    time_from = fields.Datetime(
+        string="Start Time",
+        required=True,
+        index=True,
+    )
+    
+    time_to = fields.Datetime(
+        string="End Time",
+        required=True,
+    )
+    
+    # Relationships
+    session_id = fields.Many2one(
+        comodel_name="tennis.training.session",
+        string="Training Session",
+        ondelete="cascade",
+        help="Linked training session (if booked)",
+    )
+    
+    recurring_rule_id = fields.Many2one(
+        comodel_name="recurring.training.rule",
+        string="Recurring Rule",
+        ondelete="set null",
+        help="Recurring rule that created this slot",
+    )
+    
+    # Status
+    status = fields.Selection(
+        selection=[
+            ("available", "Available"),
+            ("booked", "Booked"),
+            ("blocked", "Blocked/Maintenance"),
+        ],
+        string="Status",
+        default="available",
+        required=True,
+        index=True,
+    )
+    
+    is_recurring = fields.Boolean(
+        string="Is Recurring",
+        default=False,
+        help="Part of recurring schedule",
+    )
+    
+    # Additional info
+    notes = fields.Text(
+        string="Notes",
+        help="Additional notes (e.g., maintenance reason)",
+    )
+    
+    blocked_reason = fields.Char(
+        string="Block Reason",
+        help="Reason for blocking this slot",
+    )
+    
+    # Computed fields
+    display_name = fields.Char(
+        string="Display Name",
+        compute="_compute_display_name",
+        store=True,
+    )
+    
+    duration = fields.Float(
+        string="Duration (hours)",
+        compute="_compute_duration",
+        store=True,
+    )
+    
+    trainer_id = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Trainer",
+        related="session_id.trainer_id",
+        store=True,
+    )
+    
+    # Constraints
+    _sql_constraints = [
+        (
+            "check_time_order",
+            "CHECK(time_to > time_from)",
+            "End time must be after start time!",
+        ),
+    ]
+    
+    @api.depends("court_id", "date", "time_from", "time_to", "status")
+    def _compute_display_name(self):
+        """Compute display name."""
+        for record in self:
+            if record.court_id and record.date:
+                time_str = ""
+                if record.time_from:
+                    time_str = record.time_from.strftime("%H:%M")
+                    if record.time_to:
+                        time_str += f"-{record.time_to.strftime('%H:%M')}"
+                
+                status_icon = {
+                    "available": "🟢",
+                    "booked": "🔴",
+                    "blocked": "⚫",
+                }.get(record.status, "")
+                
+                record.display_name = (
+                    f"{status_icon} {record.court_id.name} - "
+                    f"{record.date} {time_str}"
+                )
+            else:
+                record.display_name = "New Schedule Slot"
+    
+    @api.depends("time_from", "time_to")
+    def _compute_duration(self):
+        """Compute duration in hours."""
+        for record in self:
+            if record.time_from and record.time_to:
+                delta = record.time_to - record.time_from
+                record.duration = delta.total_seconds() / 3600.0
+            else:
+                record.duration = 0.0
+    
+    @api.constrains("court_id", "date", "time_from", "time_to")
+    def _check_no_overlap(self):
+        """Ensure no overlapping slots for the same court."""
+        for record in self:
+            overlapping = self.search([
+                ("id", "!=", record.id),
+                ("court_id", "=", record.court_id.id),
+                ("date", "=", record.date),
+                ("time_from", "<", record.time_to),
+                ("time_to", ">", record.time_from),
+                ("status", "!=", "available"),
+            ])
+            
+            if overlapping:
+                raise ValidationError(
+                    f"Time slot overlaps with existing schedule:\n"
+                    f"{overlapping[0].display_name}"
+                )
+    
+    @api.constrains("time_from", "time_to", "court_id")
+    def _check_working_hours(self):
+        """Ensure slot is within court working hours."""
+        for record in self:
+            if not record.court_id or not record.time_from:
+                continue
+            
+            center = record.court_id.center_id
+            if not center:
+                continue
+            
+            # Get working hours for this day
+            weekday = record.date.weekday()
+            working_hours = self.env["tennis.center.working.hours"].search([
+                ("center_id", "=", center.id),
+                ("day_of_week", "=", str(weekday)),
+            ], limit=1)
+            
+            if not working_hours:
+                continue
+            
+            # Check if slot is within working hours
+            slot_time_from = record.time_from.time()
+            slot_time_to = record.time_to.time()
+            
+            if (slot_time_from < working_hours.hour_from_time or
+                slot_time_to > working_hours.hour_to_time):
+                raise ValidationError(
+                    f"Schedule slot must be within working hours:\n"
+                    f"{working_hours.hour_from_time.strftime('%H:%M')} - "
+                    f"{working_hours.hour_to_time.strftime('%H:%M')}"
+                )
+    
+    def action_block_slot(self):
+        """Block this time slot."""
+        self.ensure_one()
+        if self.status == "booked" and self.session_id:
+            raise ValidationError(
+                "Cannot block a slot with an active training session!"
+            )
+        self.status = "blocked"
+    
+    def action_unblock_slot(self):
+        """Unblock this time slot."""
+        self.ensure_one()
+        self.status = "available"
+        self.blocked_reason = False
+        self.notes = False
+    
+    @api.model
+    def get_available_slots(self, court_id, date, duration=1.0):
+        """Get list of available time slots for a court on a date."""
+        court = self.env["tennis.court"].browse(court_id)
+        if not court.exists():
+            return []
+        
+        if isinstance(date, str):
+            date = fields.Date.from_string(date)
+        
+        weekday = date.weekday()
+        working_hours = self.env["tennis.center.working.hours"].search([
+            ("center_id", "=", court.center_id.id),
+            ("day_of_week", "=", str(weekday)),
+        ], limit=1)
+        
+        if not working_hours:
+            return []
+        
+        occupied_slots = self.search([
+            ("court_id", "=", court_id),
+            ("date", "=", date),
+            ("status", "!=", "available"),
+        ])
+        
+        available = []
+        from datetime import datetime, timedelta
+        
+        start_time = datetime.combine(date, working_hours.hour_from_time)
+        end_time = datetime.combine(date, working_hours.hour_to_time)
+        
+        current = start_time
+        while current + timedelta(hours=duration) <= end_time:
+            slot_end = current + timedelta(hours=duration)
+            
+            is_free = True
+            for occupied in occupied_slots:
+                if (current < occupied.time_to and slot_end > occupied.time_from):
+                    is_free = False
+                    break
+            
+            if is_free:
+                available.append({
+                    "time_from": current,
+                    "time_to": slot_end,
+                    "display": f"{current.strftime('%H:%M')} - {slot_end.strftime('%H:%M')}",
+                })
+            
+            current += timedelta(hours=1)
+        
+        return available
