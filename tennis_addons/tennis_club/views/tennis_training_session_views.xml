@@ -15,6 +15,7 @@
                 <field name="court_id"/>
                 <field name="trainer_id"/>
                 <field name="training_type_id"/>
+                <field name="client_ids" widget="many2many_tags"/>
                 <field name="price" widget="monetary"/>
                 <field name="trainer_cost" widget="monetary"/>
                 <field name="revenue" widget="monetary"/>
@@ -49,6 +50,14 @@
                     
                     <button name="action_reset_to_draft" string="Reset to Draft" type="object" 
                             invisible="status not in ['confirmed', 'cancelled'] or balance_deducted"/>
+
+                    <button name="action_create_recurring_sessions" string="Generate Recurring" type="object"
+                            class="btn-primary"
+                            invisible="not is_recurring or status != 'draft'"
+                            help="Create recurring training sessions"/>
+                    <field name="is_recurring" invisible="1"/>
+
+
                     
                     <field name="status" widget="statusbar" statusbar_visible="draft,pending_approval,confirmed,completed"/>
                     <field name="needs_approval" invisible="1"/>
@@ -97,6 +106,28 @@
                         </group>
                     </group>
                     <group>
+                    <group string="Recurring Settings">
+                        <group>
+                            <field name="is_recurring"/>
+                            <field name="recurrence_pattern" invisible="not is_recurring"/>
+                            <field name="recurrence_interval" invisible="not is_recurring"/>
+                            <field name="recurrence_days" invisible="not is_recurring or recurrence_pattern != 'weekly'"/>
+                        </group>
+                        <group>
+                            <field name="recurrence_end_date" invisible="not is_recurring"/>
+                            <field name="skip_weekends" invisible="not is_recurring"/>
+                            <field name="parent_recurring_session_id" invisible="not parent_recurring_session_id"/>
+                        </group>
+                    </group>
+
+                    <separator string="Time Slots" invisible="not is_recurring"/>
+                    <field name="time_slot_ids" nolabel="1" invisible="not is_recurring">
+                        <tree editable="bottom">
+                            <field name="time_from" widget="datetime"/>
+                            <field name="time_to" widget="datetime"/>
+                            <field name="duration" readonly="1"/>
+                        </tree>
+                    </field>
                         <field name="notes" placeholder="Additional notes..."/>
                     </group>
                 </sheet>

@@ -12,3 +12,4 @@ from . import court_schedule_status
 from . import court_schedule
 from . import tennis_training_session
 from . import tennis_trainer_revenue_report
+from . import tennis_training_session_time_slot

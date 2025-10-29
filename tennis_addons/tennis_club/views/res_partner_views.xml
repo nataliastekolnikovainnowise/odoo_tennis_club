@@ -14,9 +14,15 @@
             <xpath expr="//notebook" position="inside">
                 <page string="Client Info" invisible="not is_client">
                     <group>
-                        <group>
+                        <group string="Balance">
                             <field name="balance" widget="monetary"/>
                             <field name="training_count"/>
+                        </group>
+                        <group string="Telegram Integration">
+                            <field name="telegram_chat_id"/>
+                            <field name="telegram_username"/>
+                            <field name="receive_telegram_notifications"/>
+                            <field name="notification_hours_before"/>
                         </group>
                     </group>
                     <group>
@@ -57,5 +63,4 @@
         </field>
     </record>
     
-    <!-- Menu Item -->
 </odoo>

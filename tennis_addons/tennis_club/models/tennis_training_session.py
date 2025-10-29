@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from odoo.tools.translate import _
+from datetime import datetime, timedelta
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError, UserError
 
@@ -180,6 +182,68 @@ class TennisTrainingSession(models.Model):
         help="Indicates if client balance has been deducted"
     )
     
+
+    # STAGE1: Recurring training fields
+    is_recurring = fields.Boolean(
+        string="Recurring Session",
+        default=False,
+        help="Is this a recurring training session?"
+    )
+
+    recurrence_pattern = fields.Selection(
+        selection=[
+            ("daily", "Daily"),
+            ("weekly", "Weekly"),
+            ("monthly", "Monthly"),
+        ],
+        string="Recurrence Pattern",
+        help="How often should this session repeat?"
+    )
+
+    recurrence_interval = fields.Integer(
+        string="Repeat Every",
+        default=1,
+        help="Repeat every X days/weeks/months"
+    )
+
+    recurrence_days = fields.Selection(
+        selection=[
+            ("monday", "Monday"),
+            ("tuesday", "Tuesday"),
+            ("wednesday", "Wednesday"),
+            ("thursday", "Thursday"),
+            ("friday", "Friday"),
+            ("saturday", "Saturday"),
+            ("sunday", "Sunday"),
+        ],
+        string="Day of Week",
+        help="For weekly recurrence - which day?"
+    )
+
+    recurrence_end_date = fields.Date(
+        string="Recurrence End Date",
+        help="Until when should sessions be created?"
+    )
+
+    skip_weekends = fields.Boolean(
+        string="Skip Weekends",
+        default=True,
+        help="Skip Saturday and Sunday when generating recurring sessions"
+    )
+
+    time_slot_ids = fields.One2many(
+        "tennis.training.session.time.slot",
+        "session_id",
+        string="Time Slots",
+        help="Multiple time slots for recurring sessions (e.g., Mon 10:00, Mon 15:00, Mon 18:00)"
+    )
+
+    parent_recurring_session_id = fields.Many2one(
+        "tennis.training.session",
+        string="Parent Recurring Session",
+        help="Reference to parent recurring session"
+    )
+
     _sql_constraints = [
         (
             "check_time_order",
@@ -274,16 +338,6 @@ class TennisTrainingSession(models.Model):
                 session.price = 0.0
                 session.revenue = 0.0
     
-    @api.constrains("time_from", "time_to", "date")
-    def _check_times(self):
-        """Validate times are on the same date."""
-        for session in self:
-            if session.time_from.date() != session.date:
-                raise ValidationError("Start time must be on the selected date!")
-            if session.time_to.date() != session.date:
-                raise ValidationError("End time must be on the selected date!")
-            if session.time_from >= session.time_to:
-                raise ValidationError("End time must be after start time!")
     
     @api.constrains("trainer_id", "center_id")
     def _check_trainer_center(self):
@@ -361,6 +415,27 @@ class TennisTrainingSession(models.Model):
                     raise ValidationError(
                         f"Session must be within working hours: {start_h:02d}:{start_m:02d} - {end_h:02d}:{end_m:02d}"
                     )    
+
+    @api.onchange("date")
+    def _onchange_date_sync_times(self):
+        """Sync date with time_from and time_to when date changes."""
+        
+        if self.date:
+            if self.time_from:
+                # Keep the time part, change only the date
+                new_time_from = datetime.combine(
+                    self.date,
+                    self.time_from.time()
+                )
+                self.time_from = new_time_from
+            
+            if self.time_to:
+                new_time_to = datetime.combine(
+                    self.date,
+                    self.time_to.time()
+                )
+                self.time_to = new_time_to
+
     def _check_client_balance(self):
         """Check if all clients have sufficient balance."""
         self.ensure_one()
@@ -506,3 +581,109 @@ class TennisTrainingSession(models.Model):
             })
         
         return True
+
+    def action_create_recurring_sessions(self):
+        """Create recurring training sessions based on recurrence settings."""
+        from dateutil.relativedelta import relativedelta
+        
+        self.ensure_one()
+        
+        if not self.is_recurring:
+            raise UserError(_("This is not a recurring session!"))
+        
+        if not self.recurrence_end_date:
+            raise UserError(_("Please specify recurrence end date!"))
+        
+        if self.recurrence_end_date <= self.date:
+            raise UserError(_("Recurrence end date must be after start date!"))
+        
+        # Generate sessions based on pattern
+        created_sessions = self.env['tennis.training.session']
+        current_date = self.date
+        
+        sessions_count = 0
+        max_sessions = 100  # Safety limit
+        
+        while current_date <= self.recurrence_end_date and sessions_count < max_sessions:
+            # Check user preference: skip weekends?
+            if self.skip_weekends and current_date.weekday() in [5, 6]:
+                # User wants to skip weekends
+                if self.recurrence_pattern == "daily":
+                    current_date += timedelta(days=self.recurrence_interval)
+                elif self.recurrence_pattern == "weekly":
+                    current_date += timedelta(weeks=self.recurrence_interval)
+                elif self.recurrence_pattern == "monthly":
+                    current_date += relativedelta(months=self.recurrence_interval)
+                continue
+
+            # Skip weekends for weekly pattern
+
+            # Check if center is open on this day
+            day_of_week = str(current_date.weekday())
+            working_hours = self.env["tennis.center.working.hours"].search([
+                ("center_id", "=", self.center_id.id),
+                ("day_of_week", "=", day_of_week),
+            ], limit=1)
+            
+            if working_hours and working_hours.is_closed:
+                # Skip this day - center is closed
+                if self.recurrence_pattern == "daily":
+                    current_date += timedelta(days=self.recurrence_interval)
+                elif self.recurrence_pattern == "weekly":
+                    current_date += timedelta(weeks=self.recurrence_interval)
+                elif self.recurrence_pattern == "monthly":
+                    current_date += relativedelta(months=self.recurrence_interval)
+                continue
+
+            # Check if court is available
+            conflicting = self.env['tennis.training.session'].search([
+                ('court_id', '=', self.court_id.id),
+                ('date', '=', current_date),
+                ('time_from', '<', self.time_to),
+                ('time_to', '>', self.time_from),
+                ('status', '!=', 'cancelled'),
+            ])
+            
+            if not conflicting:
+                # Create new session
+                vals = {
+                    'center_id': self.center_id.id,
+                    'court_id': self.court_id.id,
+                    'trainer_id': self.trainer_id.id,
+                    'training_type_id': self.training_type_id.id,
+                    'date': current_date,
+                    'time_from': datetime.combine(current_date, self.time_from.time()),
+                    'time_to': datetime.combine(current_date, self.time_to.time()),
+                    'client_ids': [(6, 0, self.client_ids.ids)],
+                    'price': self.price,
+                    'parent_recurring_session_id': self.id,
+                    'status': 'draft',
+                    "payment_status": self.payment_status,
+                }
+                
+                new_session = self.create(vals)
+                created_sessions |= new_session
+                sessions_count += 1
+            
+            # Calculate next date
+            if self.recurrence_pattern == 'daily':
+                current_date += timedelta(days=self.recurrence_interval)
+            elif self.recurrence_pattern == 'weekly':
+                current_date += timedelta(weeks=self.recurrence_interval)
+            elif self.recurrence_pattern == 'monthly':
+                current_date += relativedelta(months=self.recurrence_interval)
+        
+        if sessions_count == 0:
+            raise UserError(_("No sessions were created. All time slots are occupied!"))
+        # Add parent session to the list
+        created_sessions |= self
+
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Created Recurring Sessions (%s)') % sessions_count,
+            'res_model': 'tennis.training.session',
+            'view_mode': 'list,form,calendar',
+            'domain': [('id', 'in', created_sessions.ids)],
+            'context': {'create': False},
+        }
