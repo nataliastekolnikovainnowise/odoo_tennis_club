@@ -3,7 +3,10 @@
 from odoo.tools.translate import _
 from datetime import datetime, timedelta
 from odoo import api, fields, models
-from odoo.exceptions import ValidationError, UserError
+from odoo.exceptions import ValidationError, UserError, AccessError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class TennisTrainingSession(models.Model):
@@ -26,6 +29,8 @@ class TennisTrainingSession(models.Model):
         comodel_name="tennis.center",
         string="Center",
         required=True,
+        default=lambda self: self._default_center_id(),
+        domain=lambda self: self._domain_center_id(),
         help="Tennis center"
     )
     
@@ -41,7 +46,8 @@ class TennisTrainingSession(models.Model):
         comodel_name="hr.employee",
         string="Trainer",
         required=True,
-        domain="[('is_trainer', '=', True), ('center_id', '=', center_id)]",
+        default=lambda self: self._default_trainer_id(),
+        domain=lambda self: self._domain_trainer_id(),
         help="Trainer (must be from same center)"
     )
     
@@ -170,6 +176,12 @@ class TennisTrainingSession(models.Model):
         help="True if session was created by trainer (requires approval)"
     )
     
+    is_current_user_trainer = fields.Boolean(
+        string="Is Current User Trainer",
+        compute="_compute_is_current_user_trainer",
+        help="Check if current user is a trainer"
+    )
+    
     notes = fields.Text(
         string="Notes",
         help="Additional notes"
@@ -182,8 +194,6 @@ class TennisTrainingSession(models.Model):
         help="Indicates if client balance has been deducted"
     )
     
-
-    # STAGE1: Recurring training fields
     is_recurring = fields.Boolean(
         string="Recurring Session",
         default=False,
@@ -235,7 +245,7 @@ class TennisTrainingSession(models.Model):
         "tennis.training.session.time.slot",
         "session_id",
         string="Time Slots",
-        help="Multiple time slots for recurring sessions (e.g., Mon 10:00, Mon 15:00, Mon 18:00)"
+        help="Multiple time slots for recurring sessions"
     )
 
     parent_recurring_session_id = fields.Many2one(
@@ -253,12 +263,67 @@ class TennisTrainingSession(models.Model):
     ]
     
     @api.model
+    def _default_center_id(self):
+        """Default center to trainer's center if current user is trainer."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer and current_employee.center_id:
+            return current_employee.center_id.id
+        
+        return False
+    
+    @api.model
+    def _default_trainer_id(self):
+        """Default trainer to current user if they are a trainer."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer:
+            return current_employee.id
+        
+        return False
+    
+    def _domain_center_id(self):
+        """Domain for center - trainers see only their center."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer and current_employee.center_id:
+            return [('id', '=', current_employee.center_id.id)]
+        
+        return []
+    
+    def _domain_trainer_id(self):
+        """Domain for trainer - trainers see only themselves."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer:
+            return [('id', '=', current_employee.id), ('is_trainer', '=', True)]
+        
+        return [('is_trainer', '=', True)]
+    
+    @api.depends_context('uid')
+    def _compute_is_current_user_trainer(self):
+        """Check if current user is a trainer."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        for session in self:
+            session.is_current_user_trainer = bool(current_employee and current_employee.is_trainer)
+    
+    @api.model
     def create(self, vals):
         """Generate sequence number and check if created by trainer."""
         if vals.get("name", "New") == "New":
             vals["name"] = self.env["ir.sequence"].next_by_code("tennis.training.session") or "New"
         
-        # Check if current user is a trainer
         current_employee = self.env["hr.employee"].search([
             ("user_id", "=", self.env.uid)
         ], limit=1)
@@ -267,12 +332,13 @@ class TennisTrainingSession(models.Model):
             vals["created_by_trainer"] = True
             vals["needs_approval"] = True
             vals["status"] = "pending_approval"
+            if "trainer_id" not in vals:
+                vals["trainer_id"] = current_employee.id
         
         return super().create(vals)
     
     def write(self, vals):
-        """Check if modifications by trainer need approval and handle status changes."""
-        # If trainer is modifying important fields, require approval
+        """Check if modifications by trainer need approval."""
         important_fields = ["date", "time_from", "time_to", "court_id", "client_ids", "training_type_id"]
         
         current_employee = self.env["hr.employee"].search([
@@ -286,11 +352,9 @@ class TennisTrainingSession(models.Model):
                         vals["needs_approval"] = True
                         vals["status"] = "pending_approval"
         
-        # Check if status is changing to confirmed
         if "status" in vals and vals["status"] == "confirmed":
             for record in self:
                 if not record.balance_deducted:
-                    # This will trigger the balance check and deduction
                     record._check_and_deduct_balance()
         
         return super().write(vals)
@@ -310,24 +374,19 @@ class TennisTrainingSession(models.Model):
         """Compute price, trainer cost and revenue."""
         for session in self:
             if session.training_type_id and session.trainer_id and session.center_id and session.duration > 0:
-                # Получаем ставку тренера для этого типа тренировки
                 trainer_rate = self.env["tennis.trainer.rate"].search([
                     ("trainer_id", "=", session.trainer_id.id),
                     ("training_type_id", "=", session.training_type_id.id)
                 ], limit=1)
                 
-                # Получаем цену в центре для этого типа
                 center_price = self.env["tennis.center.price"].search([
                     ("center_id", "=", session.center_id.id),
                     ("training_type_id", "=", session.training_type_id.id)
                 ], limit=1)
                 
                 if trainer_rate and center_price:
-                    # Стоимость тренера = ставка * продолжительность
                     session.trainer_cost = trainer_rate.hourly_rate * session.duration
-                    # Цена клиента = цена центра * продолжительность
                     session.price = center_price.price * session.duration
-                    # Прибыль = цена - стоимость тренера
                     session.revenue = session.price - session.trainer_cost
                 else:
                     session.trainer_cost = 0.0
@@ -338,10 +397,9 @@ class TennisTrainingSession(models.Model):
                 session.price = 0.0
                 session.revenue = 0.0
     
-    
     @api.constrains("trainer_id", "center_id")
     def _check_trainer_center(self):
-        """Validate trainer belongs to the same center as the session."""
+        """Validate trainer belongs to the same center."""
         for session in self:
             if session.trainer_id and session.center_id:
                 if session.trainer_id.center_id != session.center_id:
@@ -357,11 +415,11 @@ class TennisTrainingSession(models.Model):
             if session.training_type_id and client_count > 0:
                 if client_count < session.training_type_id.min_clients:
                     raise ValidationError(
-                        f"Minimum {session.training_type_id.min_clients} clients required for {session.training_type_id.name}!"
+                        f"Minimum {session.training_type_id.min_clients} clients required!"
                     )
                 if client_count > session.training_type_id.max_clients:
                     raise ValidationError(
-                        f"Maximum {session.training_type_id.max_clients} clients allowed for {session.training_type_id.name}!"
+                        f"Maximum {session.training_type_id.max_clients} clients allowed!"
                     )
     
     @api.constrains("court_id", "date", "time_from", "time_to")
@@ -380,7 +438,7 @@ class TennisTrainingSession(models.Model):
                 ])
                 if overlapping:
                     raise ValidationError(
-                        f"Court {session.court_id.name} is already booked at this time!"
+                        f"Court {session.court_id.name} is already booked!"
                     )
     
     @api.constrains("time_from", "time_to", "court_id", "center_id")
@@ -388,7 +446,6 @@ class TennisTrainingSession(models.Model):
         """Validate session is within court working hours."""
         for session in self:
             if session.time_from and session.time_to and session.center_id:
-                # Get day of week (0=Monday, 6=Sunday)
                 day_of_week = str(session.date.weekday())
                 
                 working_hours = self.env["tennis.center.working.hours"].search([
@@ -399,41 +456,43 @@ class TennisTrainingSession(models.Model):
                 
                 if not working_hours:
                     raise ValidationError(
-                        f"Center {session.center_id.name} is not open on {session.date.strftime('%A')}!"
+                        f"Center is not open on {session.date.strftime('%A')}!"
                     )
                 
-                # Convert datetime to float hours for comparison
                 session_start = session.time_from.hour + session.time_from.minute / 60.0
                 session_end = session.time_to.hour + session.time_to.minute / 60.0
                 
                 if session_start < working_hours.time_from or session_end > working_hours.time_to:
-                    # Format hours for error message
                     start_h = int(working_hours.time_from)
                     start_m = int((working_hours.time_from % 1) * 60)
                     end_h = int(working_hours.time_to)
                     end_m = int((working_hours.time_to % 1) * 60)
                     raise ValidationError(
-                        f"Session must be within working hours: {start_h:02d}:{start_m:02d} - {end_h:02d}:{end_m:02d}"
-                    )    
+                        f"Session must be within {start_h:02d}:{start_m:02d} - {end_h:02d}:{end_m:02d}"
+                    )
 
+    @api.onchange("center_id", "trainer_id")
+    def _onchange_auto_fill_trainer_fields(self):
+        """Auto-fill center and trainer for trainers on form open."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer:
+            if not self.center_id and current_employee.center_id:
+                self.center_id = current_employee.center_id
+            if not self.trainer_id:
+                self.trainer_id = current_employee
+    
     @api.onchange("date")
     def _onchange_date_sync_times(self):
-        """Sync date with time_from and time_to when date changes."""
-        
+        """Sync date with times when date changes."""
         if self.date:
             if self.time_from:
-                # Keep the time part, change only the date
-                new_time_from = datetime.combine(
-                    self.date,
-                    self.time_from.time()
-                )
+                new_time_from = datetime.combine(self.date, self.time_from.time())
                 self.time_from = new_time_from
-            
             if self.time_to:
-                new_time_to = datetime.combine(
-                    self.date,
-                    self.time_to.time()
-                )
+                new_time_to = datetime.combine(self.date, self.time_to.time())
                 self.time_to = new_time_to
 
     def _check_client_balance(self):
@@ -444,7 +503,7 @@ class TennisTrainingSession(models.Model):
             raise UserError("Cannot confirm session without clients!")
         
         insufficient_clients = []
-        price_per_client = self.price / len(self.client_ids) if self.client_ids else 0
+        price_per_client = self.price / len(self.client_ids)
         
         for client in self.client_ids:
             if client.balance < price_per_client:
@@ -453,16 +512,14 @@ class TennisTrainingSession(models.Model):
                 )
         
         if insufficient_clients:
-            raise UserError(
-                "Insufficient balance for clients:\n" + "\n".join(insufficient_clients)
-            )
+            raise UserError("Insufficient balance:\n" + "\n".join(insufficient_clients))
     
     def _deduct_client_balance(self):
         """Deduct session price from client balances."""
         self.ensure_one()
         
         if self.balance_deducted:
-            return  # Already deducted
+            return
         
         if not self.client_ids:
             return
@@ -480,33 +537,28 @@ class TennisTrainingSession(models.Model):
         self.ensure_one()
         
         if self.balance_deducted:
-            return  # Already deducted
+            return
         
         if not self.client_ids:
-            raise UserError("Cannot process session without clients!")
+            raise UserError("Cannot process without clients!")
         
-        # Check balance
+        price_per_client = self.price / len(self.client_ids)
+        
         insufficient_clients = []
-        price_per_client = self.price / len(self.client_ids) if self.client_ids else 0
-        
         for client in self.client_ids:
             if client.balance < price_per_client:
                 insufficient_clients.append(
-                    f"{client.name} (Balance: ${client.balance:.2f}, Required: ${price_per_client:.2f})"
+                    f"{client.name} (${client.balance:.2f} < ${price_per_client:.2f})"
                 )
         
         if insufficient_clients:
-            raise UserError(
-                "Insufficient balance for clients:\n" + "\n".join(insufficient_clients)
-            )
+            raise UserError("Insufficient balance:\n" + "\n".join(insufficient_clients))
         
-        # Deduct balance
         for client in self.client_ids:
             client.balance -= price_per_client
         
         self.balance_deducted = True
         self.payment_status = "paid"
-        self.status = "completed"
     
     def action_confirm(self):
         """Confirm session."""
@@ -514,24 +566,25 @@ class TennisTrainingSession(models.Model):
             if session.needs_approval:
                 raise UserError("This session requires manager approval first!")
             
-            # Check client balances
             session._check_client_balance()
-            
             session.status = "confirmed"
         
         return True
     
     def action_approve(self):
-        """Approve session (Manager only)."""
-        # Check if current user is a manager
+        """Approve session (Manager/Director only)."""
+        if not self.env.user.has_group('tennis_club.group_tennis_manager') and \
+           not self.env.user.has_group('tennis_club.group_tennis_director'):
+            raise AccessError(_("Only managers and directors can approve sessions!"))
+        
         current_employee = self.env["hr.employee"].search([
             ("user_id", "=", self.env.uid)
         ], limit=1)
         
-        # TODO: Add proper manager check when security groups are implemented
-        # For now, assume any non-trainer can approve
-        
         for session in self:
+            if session.status != 'pending_approval':
+                raise UserError(_("Only pending sessions can be approved!"))
+            
             session.write({
                 "needs_approval": False,
                 "approved_by": current_employee.id if current_employee else False,
@@ -539,7 +592,6 @@ class TennisTrainingSession(models.Model):
                 "status": "confirmed"
             })
             
-            # Check client balances after approval
             session._check_client_balance()
         
         return True
@@ -550,9 +602,7 @@ class TennisTrainingSession(models.Model):
             if session.status != "confirmed":
                 raise UserError("Only confirmed sessions can be completed!")
             
-            # Deduct client balance
             session._deduct_client_balance()
-            
             session.status = "completed"
         
         return True
@@ -571,7 +621,7 @@ class TennisTrainingSession(models.Model):
         """Reset to draft."""
         for session in self:
             if session.balance_deducted:
-                raise UserError("Cannot reset session where balance was already deducted!")
+                raise UserError("Cannot reset - balance already deducted!")
             
             session.write({
                 "status": "draft",
@@ -583,7 +633,7 @@ class TennisTrainingSession(models.Model):
         return True
 
     def action_create_recurring_sessions(self):
-        """Create recurring training sessions based on recurrence settings."""
+        """Create recurring training sessions."""
         from dateutil.relativedelta import relativedelta
         
         self.ensure_one()
@@ -592,33 +642,24 @@ class TennisTrainingSession(models.Model):
             raise UserError(_("This is not a recurring session!"))
         
         if not self.recurrence_end_date:
-            raise UserError(_("Please specify recurrence end date!"))
+            raise UserError(_("Please specify end date!"))
         
         if self.recurrence_end_date <= self.date:
-            raise UserError(_("Recurrence end date must be after start date!"))
+            raise UserError(_("End date must be after start date!"))
         
-        # Generate sessions based on pattern
-        created_sessions = self.env['tennis.training.session']
+        time_slots = [{"time_from": self.time_from, "time_to": self.time_to}]
+        created_sessions = self.env["tennis.training.session"]
         current_date = self.date
-        
         sessions_count = 0
-        max_sessions = 100  # Safety limit
+        skipped_count = 0
+        max_sessions = 500
         
         while current_date <= self.recurrence_end_date and sessions_count < max_sessions:
-            # Check user preference: skip weekends?
             if self.skip_weekends and current_date.weekday() in [5, 6]:
-                # User wants to skip weekends
-                if self.recurrence_pattern == "daily":
-                    current_date += timedelta(days=self.recurrence_interval)
-                elif self.recurrence_pattern == "weekly":
-                    current_date += timedelta(weeks=self.recurrence_interval)
-                elif self.recurrence_pattern == "monthly":
-                    current_date += relativedelta(months=self.recurrence_interval)
+                current_date = self._get_next_date(current_date)
+                skipped_count += 1
                 continue
 
-            # Skip weekends for weekly pattern
-
-            # Check if center is open on this day
             day_of_week = str(current_date.weekday())
             working_hours = self.env["tennis.center.working.hours"].search([
                 ("center_id", "=", self.center_id.id),
@@ -626,64 +667,115 @@ class TennisTrainingSession(models.Model):
             ], limit=1)
             
             if working_hours and working_hours.is_closed:
-                # Skip this day - center is closed
-                if self.recurrence_pattern == "daily":
-                    current_date += timedelta(days=self.recurrence_interval)
-                elif self.recurrence_pattern == "weekly":
-                    current_date += timedelta(weeks=self.recurrence_interval)
-                elif self.recurrence_pattern == "monthly":
-                    current_date += relativedelta(months=self.recurrence_interval)
+                current_date = self._get_next_date(current_date)
+                skipped_count += 1
                 continue
 
-            # Check if court is available
-            conflicting = self.env['tennis.training.session'].search([
-                ('court_id', '=', self.court_id.id),
-                ('date', '=', current_date),
-                ('time_from', '<', self.time_to),
-                ('time_to', '>', self.time_from),
-                ('status', '!=', 'cancelled'),
-            ])
-            
-            if not conflicting:
-                # Create new session
-                vals = {
-                    'center_id': self.center_id.id,
-                    'court_id': self.court_id.id,
-                    'trainer_id': self.trainer_id.id,
-                    'training_type_id': self.training_type_id.id,
-                    'date': current_date,
-                    'time_from': datetime.combine(current_date, self.time_from.time()),
-                    'time_to': datetime.combine(current_date, self.time_to.time()),
-                    'client_ids': [(6, 0, self.client_ids.ids)],
-                    'price': self.price,
-                    'parent_recurring_session_id': self.id,
-                    'status': 'draft',
-                    "payment_status": self.payment_status,
-                }
+            for slot_data in time_slots:
+                slot_start = datetime.combine(current_date, slot_data["time_from"].time())
+                slot_end = datetime.combine(current_date, slot_data["time_to"].time())
                 
-                new_session = self.create(vals)
-                created_sessions |= new_session
-                sessions_count += 1
+                conflicting = self.env["tennis.training.session"].search([
+                    ("court_id", "=", self.court_id.id),
+                    ("date", "=", current_date),
+                    ("time_from", "<", slot_end),
+                    ("time_to", ">", slot_start),
+                    ("status", "!=", "cancelled"),
+                ])
+                
+                if not conflicting:
+                    vals = {
+                        "center_id": self.center_id.id,
+                        "court_id": self.court_id.id,
+                        "trainer_id": self.trainer_id.id,
+                        "training_type_id": self.training_type_id.id,
+                        "date": current_date,
+                        "time_from": slot_start,
+                        "time_to": slot_end,
+                        "client_ids": [(6, 0, self.client_ids.ids)],
+                        "parent_recurring_session_id": self.id,
+                        "status": "draft",
+                        "notes": f"Generated from {self.name}",
+                    }
+                    
+                    new_session = self.create(vals)
+                    created_sessions |= new_session
+                    sessions_count += 1
+                else:
+                    skipped_count += 1
             
-            # Calculate next date
-            if self.recurrence_pattern == 'daily':
-                current_date += timedelta(days=self.recurrence_interval)
-            elif self.recurrence_pattern == 'weekly':
-                current_date += timedelta(weeks=self.recurrence_interval)
-            elif self.recurrence_pattern == 'monthly':
-                current_date += relativedelta(months=self.recurrence_interval)
+            current_date = self._get_next_date(current_date)
         
         if sessions_count == 0:
-            raise UserError(_("No sessions were created. All time slots are occupied!"))
-        # Add parent session to the list
+            raise UserError(_("No sessions created - all slots occupied!"))
+        
         created_sessions |= self
-
+        message = _("Created %s sessions") % sessions_count
+        if skipped_count > 0:
+            message += _(" (%s skipped)") % skipped_count
         
         return {
-            'type': 'ir.actions.act_window',
-            'name': _('Created Recurring Sessions (%s)') % sessions_count,
-            'res_model': 'tennis.training.session',
-            'view_mode': 'list,form,calendar',
-            'domain': [('id', 'in', created_sessions.ids)],
-            'context': {'create': False},
+            "type": "ir.actions.act_window",
+            "name": _("Recurring Sessions (%s)") % sessions_count,
+            "res_model": "tennis.training.session",
+            "view_mode": "list,form,calendar",
+            "domain": [("id", "in", created_sessions.ids)],
         }
+    
+    def _get_next_date(self, current_date):
+        """Calculate next date based on pattern."""
+        from dateutil.relativedelta import relativedelta
+        
+        if self.recurrence_pattern == "daily":
+            return current_date + timedelta(days=self.recurrence_interval)
+        elif self.recurrence_pattern == "weekly":
+            return current_date + timedelta(weeks=self.recurrence_interval)
+        elif self.recurrence_pattern == "monthly":
+            return current_date + relativedelta(months=self.recurrence_interval)
+        return current_date + timedelta(days=1)
+
+    @api.model
+    def cron_send_training_reminders(self):
+        """Cron: Send training reminders."""
+        from .telegram_helper import TelegramHelper
+        
+        helper = TelegramHelper(self.env)
+        now = datetime.now()
+        tomorrow = now + timedelta(days=1)
+        
+        sessions = self.search([
+            ('status', '=', 'confirmed'),
+            ('time_from', '>=', now),
+            ('time_from', '<=', tomorrow),
+        ])
+        
+        reminders_sent = 0
+        
+        for session in sessions:
+            time_until = session.time_from - now
+            hours_until = time_until.total_seconds() / 3600
+            
+            for client in session.client_ids:
+                if not client.telegram_chat_id or not client.receive_telegram_notifications:
+                    continue
+                
+                if hours_until <= client.notification_hours_before:
+                    existing = self.env['telegram.notification'].search([
+                        ('partner_id', '=', client.id),
+                        ('session_id', '=', session.id),
+                        ('message_type', '=', 'booking_reminder'),
+                    ])
+                    
+                    if not existing:
+                        message = helper.format_reminder(session, client.notification_hours_before)
+                        success = client.send_telegram_notification(
+                            message_type="booking_reminder",
+                            message_text=message,
+                            session_id=session.id
+                        )
+                        
+                        if success:
+                            reminders_sent += 1
+        
+        _logger.info(f"Sent {reminders_sent} reminders")
+        return True

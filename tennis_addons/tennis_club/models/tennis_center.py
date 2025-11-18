@@ -82,6 +82,28 @@ class TennisCenter(models.Model):
         ("code_unique", "UNIQUE(code)", "Center code must be unique!"),
     ]
     
+
+    # Revenue tracking
+    currency_id = fields.Many2one(
+        "res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+    )
+
+    total_revenue = fields.Monetary(
+        string="Total Revenue",
+        compute="_compute_revenues",
+        currency_field="currency_id",
+        help="Total revenue from all trainers in this center",
+    )
+
+    current_month_revenue = fields.Monetary(
+        string="Revenue (Current Month)",
+        compute="_compute_revenues",
+        currency_field="currency_id",
+        help="Revenue for current month from all trainers",
+    )
+
     @api.depends("court_ids")
     def _compute_courts_count(self):
         """Compute number of courts."""
@@ -97,8 +119,44 @@ class TennisCenter(models.Model):
                 if not re.match(email_pattern, center.email):
                     raise ValidationError(f"Invalid email format: {center.email}")
     
-    @api.constrains("phone")
-    def _check_phone(self):
+    def _compute_revenues(self):
+        """Compute total and current month revenue for center."""
+        from datetime import datetime
+        for center in self:
+            # Get all trainers in this center
+            trainers = self.env["hr.employee"].search([
+                ("is_trainer", "=", True),
+                ("center_id", "=", center.id),
+            ])
+            
+            # Total revenue
+            total = 0.0
+            current_month = 0.0
+            
+            # First day of current month
+            today = datetime.today()
+            first_day = today.replace(day=1)
+            
+            for trainer in trainers:
+                # All completed sessions
+                all_sessions = self.env["tennis.training.session"].search([
+                    ("trainer_id", "=", trainer.id),
+                    ("status", "=", "completed"),
+                ])
+                total += sum(all_sessions.mapped("revenue"))
+                
+                # Current month sessions
+                month_sessions = self.env["tennis.training.session"].search([
+                    ("trainer_id", "=", trainer.id),
+                    ("status", "=", "completed"),
+                    ("date", ">=", first_day.date()),
+                    ("date", "<=", today.date()),
+                ])
+                current_month += sum(month_sessions.mapped("revenue"))
+            
+            center.total_revenue = total
+            center.current_month_revenue = current_month
+
         """Validate phone format."""
         for center in self:
             if center.phone:

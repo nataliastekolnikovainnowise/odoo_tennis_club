@@ -13,6 +13,8 @@
                         <group>
                             <field name="center_id"/>
                             <field name="training_session_count"/>
+                        <field name="current_month_revenue" widget="monetary"/>
+                        <field name="total_revenue" widget="monetary"/>
                         </group>
                         <group>
                             <field name="currency_id" invisible="1"/>

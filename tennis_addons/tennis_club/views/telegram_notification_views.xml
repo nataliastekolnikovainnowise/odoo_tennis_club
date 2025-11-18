@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- List View -->
+    <record id="view_telegram_notification_list" model="ir.ui.view">
+        <field name="name">telegram.notification.list</field>
+        <field name="model">telegram.notification</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="send_date"/>
+                <field name="partner_id"/>
+                <field name="message_type"/>
+                <field name="session_id"/>
+                <field name="sent_successfully" widget="boolean"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_telegram_notification_form" model="ir.ui.view">
+        <field name="name">telegram.notification.form</field>
+        <field name="model">telegram.notification</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="telegram_chat_id"/>
+                            <field name="message_type"/>
+                            <field name="session_id"/>
+                        </group>
+                        <group>
+                            <field name="send_date"/>
+                            <field name="sent_successfully"/>
+                            <field name="telegram_message_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="message_text"/>
+                    </group>
+                    <group invisible="not error_message">
+                        <field name="error_message"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_telegram_notification" model="ir.actions.act_window">
+        <field name="name">Telegram Notifications</field>
+        <field name="res_model">telegram.notification</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    
+    <!-- Menu -->
+    <menuitem id="menu_telegram_notification"
+              name="Telegram Notifications"
+              parent="menu_tennis_club_reports"
+              action="action_telegram_notification"
+              sequence="20"
+              groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
+
+</odoo>

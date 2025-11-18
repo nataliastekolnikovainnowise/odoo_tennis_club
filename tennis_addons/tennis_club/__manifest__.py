@@ -17,15 +17,18 @@
         "base",
         "hr",
         "contacts",
+        "calendar",   
+        "mail", 
     ],
     "data": [
-        # ВАЖНО: security.xml ПЕРЕД access.csv!
+        "security/tennis_club_groups.xml",
         "security/tennis_club_security.xml",
         "security/ir.model.access.csv",
-        # Данные
+        "data/ir_rule_data.xml",
         "data/tennis_training_type_data.xml",
         "data/tennis_training_session_sequence.xml",
         "data/court_schedule_status_data.xml",
+        "data/telegram_reminders_cron.xml",
         # Views
         "views/tennis_training_type_views.xml",
         "views/court_schedule_views.xml",
@@ -39,6 +42,9 @@
         "views/tennis_center_price_views.xml",
         "views/tennis_training_session_views.xml",
         "views/tennis_trainer_revenue_report_views.xml",
+        "views/telegram_notification_views.xml",
+        # Wizards
+        "wizard/client_balance_wizard_views.xml",
         "views/tennis_menu.xml",
     ],
     "demo": [],

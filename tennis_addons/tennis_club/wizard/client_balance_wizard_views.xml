@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Client Balance Wizard Form -->
+    <record id="view_client_balance_wizard_form" model="ir.ui.view">
+        <field name="name">client.balance.wizard.form</field>
+        <field name="model">client.balance.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Manage Client Balance">
+                <group>
+                    <group>
+                        <field name="partner_id" options="{'no_create': True}"/>
+                        <field name="current_balance" widget="monetary"/>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                    <group>
+                        <field name="operation" widget="radio"/>
+                        <field name="amount" widget="monetary"/>
+                        <field name="new_balance" widget="monetary" 
+                               decoration-success="new_balance >= 0"
+                               decoration-danger="new_balance < 0"/>
+                    </group>
+                </group>
+                <group>
+                    <field name="reason" placeholder="Optional: Reason for balance change..."/>
+                </group>
+                <footer>
+                    <button name="action_apply" string="Apply" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_client_balance_wizard" model="ir.actions.act_window">
+        <field name="name">Manage Balance</field>
+        <field name="res_model">client.balance.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

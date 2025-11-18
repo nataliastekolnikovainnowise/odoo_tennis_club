@@ -40,6 +40,12 @@
                             <field name="address"/>
                         </group>
                     </group>
+                    <group string="Revenue Statistics" groups="tennis_club.group_tennis_director">
+                        <group>
+                            <field name="current_month_revenue" widget="monetary"/>
+                            <field name="total_revenue" widget="monetary"/>
+                        </group>
+                    </group>
                     <notebook>
                         <page string="Working Hours">
                             <field name="working_hours_ids">

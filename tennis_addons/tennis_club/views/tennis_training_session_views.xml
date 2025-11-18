@@ -55,13 +55,14 @@
                             class="btn-primary"
                             invisible="not is_recurring or status != 'draft'"
                             help="Create recurring training sessions"/>
-                    <field name="is_recurring" invisible="1"/>
-
-
                     
                     <field name="status" widget="statusbar" statusbar_visible="draft,pending_approval,confirmed,completed"/>
                     <field name="needs_approval" invisible="1"/>
                     <field name="balance_deducted" invisible="1"/>
+                    <field name="created_by_trainer" invisible="1"/>
+                    <field name="is_current_user_trainer" invisible="1"/>
+                    <field name="is_recurring" invisible="1"/>
+                    <field name="parent_recurring_session_id" invisible="1"/>
                 </header>
                 <sheet>
                     <div class="oe_title">
@@ -77,9 +78,13 @@
                     
                     <group>
                         <group>
-                            <field name="center_id"/>
+                            <field name="center_id" 
+                                   attrs="{'readonly': [('is_current_user_trainer', '=', True)]}"
+                                   context="{'default_trainer_center': True}"/>
                             <field name="court_id"/>
-                            <field name="trainer_id"/>
+                            <field name="trainer_id" 
+                                   attrs="{'readonly': [('is_current_user_trainer', '=', True)]}"
+                                   context="{'default_current_trainer': True}"/>
                             <field name="training_type_id"/>
                         </group>
                         <group>
@@ -106,28 +111,38 @@
                         </group>
                     </group>
                     <group>
-                    <group string="Recurring Settings">
-                        <group>
-                            <field name="is_recurring"/>
-                            <field name="recurrence_pattern" invisible="not is_recurring"/>
-                            <field name="recurrence_interval" invisible="not is_recurring"/>
-                            <field name="recurrence_days" invisible="not is_recurring or recurrence_pattern != 'weekly'"/>
+                        <group string="Recurring Settings">
+                            <group>
+                                <field name="is_recurring"/>
+                                <field name="recurrence_pattern" invisible="not is_recurring"/>
+                                <field name="recurrence_interval" invisible="not is_recurring"/>
+                                <field name="recurrence_days" invisible="not is_recurring or recurrence_pattern != 'weekly'"/>
+                            </group>
+                            <group>
+                                <field name="recurrence_end_date" invisible="not is_recurring"/>
+                                <field name="skip_weekends" invisible="not is_recurring"/>
+                                <field name="parent_recurring_session_id" invisible="not parent_recurring_session_id"/>
+                            </group>
                         </group>
-                        <group>
-                            <field name="recurrence_end_date" invisible="not is_recurring"/>
-                            <field name="skip_weekends" invisible="not is_recurring"/>
-                            <field name="parent_recurring_session_id" invisible="not parent_recurring_session_id"/>
-                        </group>
-                    </group>
 
-                    <separator string="Time Slots" invisible="not is_recurring"/>
-                    <field name="time_slot_ids" nolabel="1" invisible="not is_recurring">
-                        <tree editable="bottom">
-                            <field name="time_from" widget="datetime"/>
-                            <field name="time_to" widget="datetime"/>
-                            <field name="duration" readonly="1"/>
-                        </tree>
-                    </field>
+                        <!-- Time Slots for Multiple Slots per Day -->
+                        <notebook invisible="not is_recurring">
+                            <page string="Time Slots" name="time_slots">
+                                <field name="time_slot_ids">
+                                    <list editable="bottom">
+                                        <field name="time_from" widget="datetime"/>
+                                        <field name="time_to" widget="datetime"/>
+                                        <field name="duration" readonly="1"/>
+                                    </list>
+                                </field>
+                                <div class="alert alert-info mt-2">
+                                    <p><i class="fa fa-info-circle"/> <b>Multiple Time Slots:</b></p>
+                                    <p>Add multiple time slots if you want the same training to repeat at different times on the same day.</p>
+                                    <p><b>Example:</b> Monday 10:00-11:00, Monday 15:00-16:00, Monday 18:00-19:00</p>
+                                    <p>If no time slots are specified, the main session time will be used.</p>
+                                </div>
+                            </page>
+                        </notebook>
                         <field name="notes" placeholder="Additional notes..."/>
                     </group>
                 </sheet>
