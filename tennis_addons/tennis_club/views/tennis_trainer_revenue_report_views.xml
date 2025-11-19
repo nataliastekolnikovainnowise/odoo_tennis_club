@@ -1,46 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     
+    <!-- Report Line Tree View -->
+    <record id="view_tennis_trainer_revenue_report_line_tree" model="ir.ui.view">
+        <field name="name">tennis.trainer.revenue.report.line.tree</field>
+        <field name="model">tennis.trainer.revenue.report.line</field>
+        <field name="arch" type="xml">
+            <tree>
+                <field name="trainer_id"/>
+                <field name="session_count"/>
+                <field name="total_trainer_cost" widget="monetary" sum="Total Cost"/>
+                <field name="total_revenue" widget="monetary" sum="Total Revenue"/>
+                <field name="currency_id" column_invisible="1"/>
+            </tree>
+        </field>
+    </record>
+    
     <!-- Report Wizard Form View -->
     <record id="view_tennis_trainer_revenue_report_form" model="ir.ui.view">
         <field name="name">tennis.trainer.revenue.report.form</field>
         <field name="model">tennis.trainer.revenue.report</field>
         <field name="arch" type="xml">
             <form>
-                <group>
+                <sheet>
                     <group>
-                        <field name="date_from"/>
-                        <field name="date_to"/>
+                        <group string="Filter Options">
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="trainer_id" placeholder="Leave empty for all trainers"/>
+                        </group>
                     </group>
-                    <group>
-                        <field name="trainer_id"/>
-                    </group>
-                </group>
-                
-                <group string="Revenue Report">
-                    <field name="line_ids" nolabel="1"/>
-                </group>
+                    
+                    <notebook>
+                        <page string="Revenue Report" name="report">
+                            <field name="line_ids" nolabel="1">
+                                <tree>
+                                    <field name="trainer_id"/>
+                                    <field name="session_count"/>
+                                    <field name="total_trainer_cost" widget="monetary" sum="Total Cost"/>
+                                    <field name="total_revenue" widget="monetary" sum="Total Revenue"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
                 
                 <footer>
-                    <button string="Generate Report" name="action_generate_report" type="object" class="oe_highlight"/>
+                    <button string="Generate Report" 
+                            name="action_generate_report" 
+                            type="object" 
+                            class="oe_highlight"
+                            invisible="line_ids"/>
+                    <button string="Refresh" 
+                            name="action_generate_report" 
+                            type="object" 
+                            class="btn-secondary"
+                            invisible="not line_ids"/>
                     <button string="Close" special="cancel"/>
                 </footer>
             </form>
-        </field>
-    </record>
-    
-    <!-- Report Line List View -->
-    <record id="view_tennis_trainer_revenue_report_line_list" model="ir.ui.view">
-        <field name="name">tennis.trainer.revenue.report.line.list</field>
-        <field name="model">tennis.trainer.revenue.report.line</field>
-        <field name="arch" type="xml">
-            <list decoration-success="total_revenue &gt; 100" decoration-info="total_revenue &gt; 50">
-                <field name="trainer_id"/>
-                <field name="session_count"/>
-                <field name="total_trainer_cost" widget="monetary"/>
-                <field name="total_revenue" widget="monetary"/>
-                <field name="currency_id" column_invisible="1"/>
-            </list>
         </field>
     </record>
     
@@ -50,6 +69,7 @@
         <field name="res_model">tennis.trainer.revenue.report</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
+        <field name="context">{}</field>
     </record>
 
 </odoo>
