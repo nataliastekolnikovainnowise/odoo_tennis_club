@@ -30,6 +30,7 @@
         "data/court_schedule_status_data.xml",
         "data/telegram_reminders_cron.xml",
         # Views
+        "data/tennis_center_revenue_menu.xml",
         "views/tennis_training_type_views.xml",
         "views/court_schedule_views.xml",
         "views/tennis_center_views.xml",
@@ -42,6 +43,8 @@
         "views/tennis_center_price_views.xml",
         "views/tennis_training_session_views.xml",
         "views/tennis_trainer_revenue_report_views.xml",
+        "report/tennis_trainer_revenue_report_template.xml",
+        "views/tennis_center_revenue_report_views.xml",
         "views/telegram_notification_views.xml",
         # Wizards
         "wizard/client_balance_wizard_views.xml",

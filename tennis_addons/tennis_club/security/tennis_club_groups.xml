@@ -4,27 +4,27 @@
         <!-- Base Tennis Club Group -->
         <record id="group_tennis_base" model="res.groups">
             <field name="name">Tennis Club User</field>
-            <field name="category_id" ref="base.module_category_operations"/>
+            <field name="category_id" ref="base.module_category_administration"/>
         </record>
 
         <!-- Trainer Group -->
         <record id="group_tennis_trainer" model="res.groups">
             <field name="name">Trainer</field>
-            <field name="category_id" ref="base.module_category_operations"/>
+            <field name="category_id" ref="base.module_category_administration"/>
             <field name="implied_ids" eval="[(4, ref('group_tennis_base'))]"/>
         </record>
 
         <!-- Manager Group -->
         <record id="group_tennis_manager" model="res.groups">
             <field name="name">Manager</field>
-            <field name="category_id" ref="base.module_category_operations"/>
+            <field name="category_id" ref="base.module_category_administration"/>
             <field name="implied_ids" eval="[(4, ref('group_tennis_trainer'))]"/>
         </record>
 
         <!-- Director Group -->
         <record id="group_tennis_director" model="res.groups">
             <field name="name">Director</field>
-            <field name="category_id" ref="base.module_category_operations"/>
+            <field name="category_id" ref="base.module_category_administration"/>
             <field name="implied_ids" eval="[(4, ref('group_tennis_manager'))]"/>
         </record>
     </data>

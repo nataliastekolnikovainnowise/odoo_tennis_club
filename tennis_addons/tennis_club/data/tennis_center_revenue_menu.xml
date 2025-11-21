@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Menu для Center Revenue (принудительно) -->
+        <record id="menu_center_revenue_report" model="ir.ui.menu">
+            <field name="name">Center Revenue</field>
+            <field name="parent_id" ref="menu_tennis_club_reports"/>
+            <field name="action" ref="action_tennis_center_revenue_report"/>
+            <field name="sequence">20</field>
+        </record>
+    </data>
+</odoo>
