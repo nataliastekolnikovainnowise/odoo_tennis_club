@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- PDF Report Template -->
+    <template id="report_center_revenue_document">
+        <t t-foreach="docs" t-as="o">
+            <t t-call="web.html_container">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2 class="text-center">Center Revenue Report</h2>
+                        <p class="text-center">
+                            Period: <span t-esc="o.date_from"/> - <span t-esc="o.date_to"/>
+                        </p>
+                        <t t-if="o.center_id">
+                            <p class="text-center">
+                                Center: <span t-field="o.center_id"/>
+                            </p>
+                        </t>
+                        
+                        <table class="table table-bordered mt-4">
+                            <thead>
+                                <tr>
+                                    <th>Center</th>
+                                    <th class="text-right">Sessions</th>
+                                    <th class="text-right">Center Cost</th>
+                                    <th class="text-right">Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr t-foreach="o.line_ids" t-as="line">
+                                    <td><span t-field="line.center_id"/></td>
+                                    <td class="text-right"><span t-field="line.session_count"/></td>
+                                    <td class="text-right">
+                                        <span t-field="line.total_center_cost" 
+                                              t-options='{"widget": "monetary", "display_currency": line.currency_id}'/>
+                                    </td>
+                                    <td class="text-right">
+                                        <span t-field="line.total_revenue" 
+                                              t-options='{"widget": "monetary", "display_currency": line.currency_id}'/>
+                                    </td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <th>Total</th>
+                                    <th class="text-right"><t t-esc="o.total_sessions"/></th>
+                                    <th class="text-right">
+                                        <span t-field="o.total_cost" 
+                                              t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                    </th>
+                                    <th class="text-right">
+                                        <span t-field="o.total_revenue_sum" 
+                                              t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                    </th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+    
+    <!-- Report Action -->
+    <record id="action_report_center_revenue" model="ir.actions.report">
+        <field name="name">Center Revenue Report</field>
+        <field name="model">tennis.center.revenue.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">tennis_club.report_center_revenue_document</field>
+        <field name="report_file">tennis_club.report_center_revenue_document</field>
+        <field name="binding_model_id" ref="model_tennis_center_revenue_report"/>
+        <field name="binding_type">report</field>
+    </record>
+
+</odoo>

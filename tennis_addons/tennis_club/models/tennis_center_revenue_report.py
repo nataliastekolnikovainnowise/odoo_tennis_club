@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Tennis Center Revenue Report."""
 
 from odoo import api, fields, models
@@ -6,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 
 
 class TennisCenterRevenueReport(models.Model):
-    """Wizard for Center Revenue Report."""
+    """Center Revenue Report Model."""
     
     _name = "tennis.center.revenue.report"
     _description = "Tennis Center Revenue Report"
@@ -42,18 +43,26 @@ class TennisCenterRevenueReport(models.Model):
         compute="_compute_totals",
     )
 
-    total_cost = fields.Float(
+    total_cost = fields.Monetary(
         string="Total Cost",
+        currency_field="currency_id",
         compute="_compute_totals",
     )
 
-    total_revenue_sum = fields.Float(
+    total_revenue_sum = fields.Monetary(
         string="Total Revenue",
+        currency_field="currency_id",
         compute="_compute_totals",
     )
-
     
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+    )
+
     def _compute_totals(self):
+        """Compute totals from lines."""
         for record in self:
             record.total_sessions = sum(record.line_ids.mapped("session_count"))
             record.total_cost = sum(record.line_ids.mapped("total_center_cost"))
@@ -104,13 +113,13 @@ class TennisCenterRevenueReport(models.Model):
                 "total_center_cost": data["total_center_cost"],
             })
         
-        # Return action to show results
+        # Return action to stay on the same form (NOT close it!)
         return {
             "type": "ir.actions.act_window",
             "res_model": "tennis.center.revenue.report",
             "view_mode": "form",
             "res_id": self.id,
-            "target": "new",
+            "target": "current",
         }
 
 
@@ -141,17 +150,19 @@ class TennisCenterRevenueReportLine(models.Model):
     
     total_revenue = fields.Monetary(
         string="Total Revenue (Profit)",
+        currency_field="currency_id",
         help="Total profit from all sessions",
     )
     
     total_center_cost = fields.Monetary(
         string="Total Center Cost",
-        help="Total cost paid to center",
+        currency_field="currency_id",
+        help="Total income from clients",
     )
     
     currency_id = fields.Many2one(
         comodel_name="res.currency",
         string="Currency",
-        default=lambda self: self.env.company.currency_id,
+        related="report_id.currency_id",
+        store=True,
     )
-

@@ -1,12 +1,14 @@
+# -*- coding: utf-8 -*-
 """Tennis Trainer Revenue Report."""
 
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 
 
-class TennisTrainerRevenueReport(models.TransientModel):
-    """Wizard for Trainer Revenue Report."""
+class TennisTrainerRevenueReport(models.Model):
+    """Trainer Revenue Report Model."""
     
     _name = "tennis.trainer.revenue.report"
     _description = "Tennis Trainer Revenue Report"
@@ -37,6 +39,47 @@ class TennisTrainerRevenueReport(models.TransientModel):
         inverse_name="report_id",
         string="Revenue Lines",
     )
+    
+    total_sessions = fields.Integer(
+        string="Total Sessions",
+        compute="_compute_totals",
+    )
+    
+    total_cost = fields.Monetary(
+        string="Total Cost",
+        currency_field="currency_id",
+        compute="_compute_totals",
+    )
+    
+    total_revenue_sum = fields.Monetary(
+        string="Total Revenue",
+        currency_field="currency_id",
+        compute="_compute_totals",
+    )
+    
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+    )
+    
+    def _compute_totals(self):
+        """Compute totals from lines."""
+        for record in self:
+            record.total_sessions = sum(record.line_ids.mapped("session_count"))
+            record.total_cost = sum(record.line_ids.mapped("total_trainer_cost"))
+            record.total_revenue_sum = sum(record.line_ids.mapped("total_revenue"))
+    
+    def action_print_report(self):
+        """Print revenue report as PDF."""
+        self.ensure_one()
+        report = self.env["ir.actions.report"].search([
+            ("model", "=", "tennis.trainer.revenue.report"),
+            ("report_type", "=", "qweb-pdf")
+        ], limit=1)
+        if not report:
+            raise UserError("Report not found!")
+        return report.report_action(self)
     
     def action_generate_report(self):
         """Generate revenue report for selected period."""
@@ -83,17 +126,17 @@ class TennisTrainerRevenueReport(models.TransientModel):
                 "total_trainer_cost": data["total_trainer_cost"],
             })
         
-        # Return action to show results
+        # Return action to stay on the same form (NOT close it!)
         return {
             "type": "ir.actions.act_window",
             "res_model": "tennis.trainer.revenue.report",
             "view_mode": "form",
             "res_id": self.id,
-            "target": "new",
+            "target": "current",
         }
 
 
-class TennisTrainerRevenueReportLine(models.TransientModel):
+class TennisTrainerRevenueReportLine(models.Model):
     """Line for Trainer Revenue Report."""
     
     _name = "tennis.trainer.revenue.report.line"
@@ -110,6 +153,7 @@ class TennisTrainerRevenueReportLine(models.TransientModel):
     trainer_id = fields.Many2one(
         comodel_name="hr.employee",
         string="Trainer",
+        domain="[('is_trainer', '=', True)]",
         required=True,
     )
     
@@ -118,20 +162,21 @@ class TennisTrainerRevenueReportLine(models.TransientModel):
         help="Number of completed sessions",
     )
     
-    total_revenue = fields.Monetary(
-        string="Total Revenue (Profit)",
-        currency_field="currency_id",
-        help="Total profit from all sessions",
-    )
-    
     total_trainer_cost = fields.Monetary(
         string="Total Trainer Cost",
         currency_field="currency_id",
-        help="Total cost paid to trainer",
+        help="Total amount paid to trainer",
+    )
+    
+    total_revenue = fields.Monetary(
+        string="Total Revenue (Profit)",
+        currency_field="currency_id",
+        help="Total profit from trainer's sessions",
     )
     
     currency_id = fields.Many2one(
         comodel_name="res.currency",
         string="Currency",
         default=lambda self: self.env.company.currency_id,
+        required=True,
     )

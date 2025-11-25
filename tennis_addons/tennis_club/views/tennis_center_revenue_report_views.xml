@@ -36,6 +36,14 @@
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
+                            <group>
+                                <group string="Total Summary">
+                                    <field name="total_sessions" string="Total Sessions" readonly="1"/>
+                                    <field name="total_cost" string="Total Cost" widget="monetary" readonly="1"/>
+                                    <field name="total_revenue_sum" string="Total Revenue" widget="monetary" readonly="1"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </group>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>
@@ -66,5 +74,4 @@
             </p>
         </field>
     </record>
-
 </odoo>

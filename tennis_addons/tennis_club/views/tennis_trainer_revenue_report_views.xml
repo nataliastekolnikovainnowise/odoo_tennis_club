@@ -6,70 +6,90 @@
         <field name="name">tennis.trainer.revenue.report.line.tree</field>
         <field name="model">tennis.trainer.revenue.report.line</field>
         <field name="arch" type="xml">
-            <tree>
+            <list>
                 <field name="trainer_id"/>
                 <field name="session_count"/>
                 <field name="total_trainer_cost" widget="monetary" sum="Total Cost"/>
                 <field name="total_revenue" widget="monetary" sum="Total Revenue"/>
                 <field name="currency_id" column_invisible="1"/>
-            </tree>
+            </list>
         </field>
     </record>
     
-    <!-- Report Wizard Form View -->
+    <!-- Report Form View -->
     <record id="view_tennis_trainer_revenue_report_form" model="ir.ui.view">
         <field name="name">tennis.trainer.revenue.report.form</field>
         <field name="model">tennis.trainer.revenue.report</field>
         <field name="arch" type="xml">
             <form>
                 <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button string="Generate Report" 
+                                name="action_generate_report" 
+                                type="object" 
+                                class="oe_stat_button"
+                                icon="fa-refresh"/>
+                    </div>
+                    
                     <group>
-                        <group string="Filter Options">
+                        <group>
                             <field name="date_from"/>
                             <field name="date_to"/>
-                            <field name="trainer_id" placeholder="Leave empty for all trainers"/>
+                        </group>
+                        <group>
+                            <field name="trainer_id" placeholder="All trainers"/>
                         </group>
                     </group>
                     
                     <notebook>
-                        <page string="Revenue Report" name="report">
-                            <field name="line_ids" nolabel="1">
-                                <tree>
+                        <page string="Revenue Lines">
+                            <field name="line_ids">
+                                <list editable="bottom">
                                     <field name="trainer_id"/>
                                     <field name="session_count"/>
                                     <field name="total_trainer_cost" widget="monetary" sum="Total Cost"/>
                                     <field name="total_revenue" widget="monetary" sum="Total Revenue"/>
                                     <field name="currency_id" column_invisible="1"/>
-                                </tree>
+                                </list>
                             </field>
+                            <group>
+                                <group string="Total Summary">
+                                    <field name="total_sessions" string="Total Sessions" readonly="1"/>
+                                    <field name="total_cost" string="Total Trainer Cost" widget="monetary" readonly="1"/>
+                                    <field name="total_revenue_sum" string="Total Revenue" widget="monetary" readonly="1"/>
+                                    <field name="currency_id" invisible="1"/>
+                                </group>
+                            </group>
                         </page>
                     </notebook>
                 </sheet>
-                
-                <footer>
-                    <button string="Generate Report" 
-                            name="action_generate_report" 
-                            type="object" 
-                            class="oe_highlight"
-                            invisible="line_ids"/>
-                    <button string="Refresh" 
-                            name="action_generate_report" 
-                            type="object" 
-                            class="btn-secondary"
-                            invisible="not line_ids"/>
-                    <button string="Close" special="cancel"/>
-                </footer>
             </form>
+        </field>
+    </record>
+    
+    <!-- Report List View -->
+    <record id="view_tennis_trainer_revenue_report_list" model="ir.ui.view">
+        <field name="name">tennis.trainer.revenue.report.list</field>
+        <field name="model">tennis.trainer.revenue.report</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date" string="Created"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="trainer_id"/>
+            </list>
         </field>
     </record>
     
     <!-- Action -->
     <record id="action_tennis_trainer_revenue_report" model="ir.actions.act_window">
-        <field name="name">Trainer Revenue Report</field>
+        <field name="name">Trainer Revenue Reports</field>
         <field name="res_model">tennis.trainer.revenue.report</field>
-        <field name="view_mode">form</field>
-        <field name="target">new</field>
-        <field name="context">{}</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first Trainer Revenue Report
+            </p>
+        </field>
     </record>
-
 </odoo>

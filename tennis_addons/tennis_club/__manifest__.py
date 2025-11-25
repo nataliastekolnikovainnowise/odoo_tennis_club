@@ -44,6 +44,7 @@
         "views/tennis_training_session_views.xml",
         "views/tennis_trainer_revenue_report_views.xml",
         "report/tennis_trainer_revenue_report_template.xml",
+        "report/tennis_center_revenue_report_template.xml",
         "views/tennis_center_revenue_report_views.xml",
         "views/telegram_notification_views.xml",
         # Wizards

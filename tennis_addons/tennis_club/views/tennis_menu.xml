@@ -108,5 +108,10 @@
               parent="menu_tennis_club_reports"
               action="action_tennis_trainer_revenue_report"
               sequence="10"/>
-
+    
+    <menuitem id="menu_center_revenue_report"
+              name="Center Revenue"
+              parent="menu_tennis_club_reports"
+              action="action_tennis_center_revenue_report"
+              sequence="20"/>
 </odoo>
