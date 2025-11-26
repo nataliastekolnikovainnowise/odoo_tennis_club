@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ========== HR EMPLOYEE (Trainers) ========== -->
+    <record id="rule_employee_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Trainers Only</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_employee_director" model="ir.rule">
+        <field name="name">Director: All Employees</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== CENTERS ========== -->
+    <record id="rule_center_manager" model="ir.rule">
+        <field name="name">Manager: Own Centers Only</field>
+        <field name="model_id" ref="model_tennis_center"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_center_director" model="ir.rule">
+        <field name="name">Director: All Centers</field>
+        <field name="model_id" ref="model_tennis_center"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== COURTS ========== -->
+    <record id="rule_court_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Courts Only</field>
+        <field name="model_id" ref="model_tennis_court"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_court_director" model="ir.rule">
+        <field name="name">Director: All Courts</field>
+        <field name="model_id" ref="model_tennis_court"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== TRAINING SESSIONS ========== -->
+    <record id="rule_session_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Sessions Only</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('trainer_id.user_id', '=', user.id)]</field>
+    </record>
+
+    <record id="rule_session_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Sessions</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+
+    <record id="rule_session_director" model="ir.rule">
+        <field name="name">Director: All Sessions</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== TRAINER AVAILABILITY ========== -->
+    <record id="rule_availability_manager" model="ir.rule">
+        <field name="name">Manager: Own Trainers Availability</field>
+        <field name="model_id" ref="model_tennis_trainer_availability"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('trainer_id.center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_availability_director" model="ir.rule">
+        <field name="name">Director: All Availability</field>
+        <field name="model_id" ref="model_tennis_trainer_availability"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== TRAINER RATES ========== -->
+    <record id="rule_rate_manager" model="ir.rule">
+        <field name="name">Manager: Own Trainers Rates</field>
+        <field name="model_id" ref="model_tennis_trainer_rate"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('trainer_id.center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_rate_director" model="ir.rule">
+        <field name="name">Director: All Rates</field>
+        <field name="model_id" ref="model_tennis_trainer_rate"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== CENTER PRICES ========== -->
+    <record id="rule_price_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Prices</field>
+        <field name="model_id" ref="model_tennis_center_price"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_price_director" model="ir.rule">
+        <field name="name">Director: All Prices</field>
+        <field name="model_id" ref="model_tennis_center_price"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== TRAINER REVENUE REPORT LINES ========== -->
+    <record id="rule_trainer_revenue_report_line_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Report Lines</field>
+        <field name="model_id" ref="model_tennis_trainer_revenue_report_line"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('trainer_id.center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_trainer_revenue_report_line_director" model="ir.rule">
+        <field name="name">Director: All Report Lines</field>
+        <field name="model_id" ref="model_tennis_trainer_revenue_report_line"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>

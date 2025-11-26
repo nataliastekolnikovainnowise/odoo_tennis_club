@@ -13,6 +13,25 @@ class TennisTrainerRevenueReport(models.Model):
     _name = "tennis.trainer.revenue.report"
     _description = "Tennis Trainer Revenue Report"
     
+    @api.model
+    def _get_trainer_domain(self):
+        """Get domain for trainer selection based on user role."""
+        user = self.env.user
+        
+        # Director sees all trainers
+        if user.has_group("tennis_club.group_tennis_director"):
+            return [("is_trainer", "=", True)]
+        
+        # Manager sees only trainers from their centers
+        if user.has_group("tennis_club.group_tennis_manager"):
+            employee = self.env["hr.employee"].search([("user_id", "=", user.id)], limit=1)
+            if employee:
+                centers = self.env["tennis.center"].search([("manager_id", "=", employee.id)])
+                return [("is_trainer", "=", True), ("center_id", "in", centers.ids)]
+        
+        # Default: no trainers
+        return [("id", "=", False)]
+    
     date_from = fields.Date(
         string="Date From",
         required=True,
@@ -30,7 +49,7 @@ class TennisTrainerRevenueReport(models.Model):
     trainer_id = fields.Many2one(
         comodel_name="hr.employee",
         string="Trainer",
-        domain="[('is_trainer', '=', True)]",
+        domain=lambda self: self._get_trainer_domain(),
         help="Leave empty to show all trainers",
     )
     
