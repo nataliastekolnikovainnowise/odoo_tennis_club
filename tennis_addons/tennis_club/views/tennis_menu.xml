@@ -114,4 +114,10 @@
               parent="menu_tennis_club_reports"
               action="action_tennis_center_revenue_report"
               sequence="20"/>
+    
+    <menuitem id="menu_top_statistics"
+              name="Top Statistics"
+              parent="menu_tennis_club_reports"
+              action="action_tennis_top_statistics"
+              sequence="30"/>
 </odoo>

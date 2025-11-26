@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_top_statistics_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2 style="text-align: center;">Top Statistics Report</h2>
+                        <p style="text-align: center;">
+                            Period: <span t-esc="o.date_from"/> - <span t-esc="o.date_to"/>
+                        </p>
+                        
+                        <div style="margin-top: 30px;">
+                            <h4>Most Profitable Trainer</h4>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Trainer:</strong></td>
+                                    <td><span t-field="o.top_trainer_id"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Revenue:</strong></td>
+                                    <td>
+                                        <span t-field="o.top_trainer_revenue" 
+                                              t-options='{"widget": "monetary", "display_currency": o.currency_id}'/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div style="margin-top: 30px;">
+                            <h4>Most Popular Training Type</h4>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Training Type:</strong></td>
+                                    <td><span t-field="o.top_training_type_id"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sessions Count:</strong></td>
+                                    <td><span t-esc="o.top_training_type_sessions"/></td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div style="margin-top: 30px;">
+                            <h4>Most Active Client</h4>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>Client:</strong></td>
+                                    <td><span t-field="o.top_client_id"/></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Sessions Count:</strong></td>
+                                    <td><span t-esc="o.top_client_sessions"/></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+    
+    <record id="action_report_top_statistics" model="ir.actions.report">
+        <field name="name">Top Statistics Report</field>
+        <field name="model">tennis.top.statistics.report</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">tennis_club.report_top_statistics_document</field>
+        <field name="report_file">tennis_club.report_top_statistics_document</field>
+        <field name="binding_model_id" ref="model_tennis_top_statistics_report"/>
+        <field name="binding_type">report</field>
+    </record>
+</odoo>
