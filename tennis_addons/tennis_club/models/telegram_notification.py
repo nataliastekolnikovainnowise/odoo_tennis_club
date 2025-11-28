@@ -92,16 +92,12 @@ class TelegramNotification(models.Model):
             _logger.warning(f"Partner {partner.name} has no telegram_chat_id")
             return False
         
-        # TEMPORARY FIX: Return True without creating DB record
-        _logger.info(f"Would create notification: {message_type} for {partner.name}")
-        return True
-        
-        # vals = {
-        #     "partner_id": partner_id,
-        #     "telegram_chat_id": partner.telegram_chat_id,
-        #     "message_type": message_type,
-        #     "message_text": message_text,
-        #     "session_id": session_id,
-        #     "sent_successfully": False,
-        # }
-        # return self.create(vals)
+        vals = {
+            "partner_id": partner_id,
+            "telegram_chat_id": partner.telegram_chat_id,
+            "message_type": message_type,
+            "message_text": message_text,
+            "session_id": session_id,
+            "sent_successfully": False,
+        }
+        return self.create(vals)

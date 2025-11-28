@@ -339,6 +339,9 @@ class TennisTrainingSession(models.Model):
     
     def write(self, vals):
         """Check if modifications by trainer need approval."""
+        import logging
+        _logger = logging.getLogger(__name__)
+        
         important_fields = ["date", "time_from", "time_to", "court_id", "client_ids", "training_type_id"]
         
         current_employee = self.env["hr.employee"].search([
@@ -357,7 +360,39 @@ class TennisTrainingSession(models.Model):
                 if not record.balance_deducted:
                     record._check_and_deduct_balance()
         
-        return super().write(vals)
+        # Save old state for notification logic
+        old_clients_map = {}
+        for record in self:
+            old_clients_map[record.id] = record.client_ids.ids
+        
+        old_status_map = {record.id: record.status for record in self}
+        
+        # Perform the write
+        result = super().write(vals)
+        
+        # Check if status changed to confirmed or clients were added
+        status_changed_to_confirmed = "status" in vals and vals["status"] == "confirmed"
+        clients_changed = "client_ids" in vals
+        
+        _logger.info(f"Write: status_changed={status_changed_to_confirmed}, clients_changed={clients_changed}")
+        
+        # Send notifications after write
+        for record in self:
+            if record.status == "confirmed":
+                # If clients were added
+                if clients_changed:
+                    old_clients = old_clients_map.get(record.id, [])
+                    new_clients = record.client_ids.ids
+                    added_clients = list(set(new_clients) - set(old_clients))
+                    
+                    if added_clients:
+                        record._send_booking_confirmation(added_clients)
+                
+                # If status changed to confirmed, notify all clients
+                elif status_changed_to_confirmed and record.client_ids:
+                    record._send_booking_confirmation(record.client_ids.ids)
+        
+        return result
     
     @api.depends("time_from", "time_to")
     def _compute_duration(self):
@@ -735,6 +770,52 @@ class TennisTrainingSession(models.Model):
         return current_date + timedelta(days=1)
 
     @api.model
+    def _send_booking_confirmation(self, client_ids):
+        """Send booking confirmation to specified clients.
+        
+        Args:
+            client_ids: List of res.partner IDs
+        """
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        _logger.info(f"_send_booking_confirmation called with clients: {client_ids}")
+        
+        from .telegram_helper import TelegramHelper
+        helper = TelegramHelper(self.env)
+        
+        clients = self.env['res.partner'].browse(client_ids)
+        
+        for client in clients:
+            if not client.telegram_chat_id or not client.receive_telegram_notifications:
+                continue
+            
+            # Check if notification already sent
+            existing = self.env['telegram.notification'].search([
+                ('partner_id', '=', client.id),
+                ('session_id', '=', self.id),
+                ('message_type', '=', 'booking_confirmation'),
+            ])
+            
+            if existing:
+                _logger.info(f"Notification already sent to {client.name}")
+                continue
+            
+            # Format and send
+            message = helper.format_booking_confirmation(self)
+            
+            # Send notification
+            success = client.send_telegram_notification(
+                message_type="booking_confirmation",
+                message_text=message,
+                session_id=self.id
+            )
+            
+            if success:
+                _logger.info(f"Booking confirmation sent to {client.name}")
+            else:
+                _logger.error(f"Failed to send booking confirmation to {client.name}")
+    
     def cron_send_training_reminders(self):
         """Cron: Send training reminders."""
         from .telegram_helper import TelegramHelper

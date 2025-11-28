@@ -19,6 +19,7 @@
         "contacts",
         "calendar",   
         "mail", 
+        "queue_job",
     ],
     "data": [
         "security/tennis_club_groups.xml",
@@ -28,6 +29,7 @@
         "data/ir_rule_data.xml",
         "data/tennis_training_type_data.xml",
         "data/tennis_training_session_sequence.xml",
+        "data/tennis_training_reminder_cron.xml",
         "data/court_schedule_status_data.xml",
         "data/telegram_reminders_cron.xml",
         # Views

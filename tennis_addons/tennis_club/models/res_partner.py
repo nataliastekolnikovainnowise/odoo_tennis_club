@@ -180,11 +180,6 @@ class ResPartner(models.Model):
         """
         self.ensure_one()
         
-        # TEMPORARY: Disable all Telegram notifications to avoid email configuration errors
-        return True
-        
-        # TEMPORARY: Disable all Telegram notifications to avoid email configuration errors
-        return True
         
         if not self.telegram_chat_id:
             return False
@@ -216,7 +211,6 @@ class ResPartner(models.Model):
         notification.write({
             "sent_successfully": result["success"],
             "error_message": result.get("error", False),
-            "telegram_message_id": result.get("message_id", False),
         })
         
         return result["success"]

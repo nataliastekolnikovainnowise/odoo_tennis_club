@@ -67,7 +67,7 @@ class TelegramHelper:
 <b>Session:</b> {session.name}
 <b>Date:</b> {session.date.strftime('%d.%m.%Y')}
 <b>Time:</b> {session.time_from.strftime('%H:%M')} - {session.time_to.strftime('%H:%M')}
-<b>Duration:</b> {session.duration} hours
+<b>Duration:</b> {int(session.duration) if session.duration == int(session.duration) else session.duration} hour{'s' if session.duration != 1 else ''}
 
 <b>Location:</b>
 📍 {session.center_id.name}

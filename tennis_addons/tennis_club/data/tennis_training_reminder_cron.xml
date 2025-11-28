@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <!-- Cron Job для отправки напоминаний каждые 10 минут -->
+    <record id="ir_cron_send_training_reminders" model="ir.cron">
+        <field name="name">Tennis: Send Training Reminders</field>
+        <field name="model_id" ref="model_tennis_training_reminder"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_send_pending_reminders()</field>
+        <field name="interval_number">10</field>
+        <field name="interval_type">minutes</field>
+        <field name="numbercall">-1</field>
+        <field name="active" eval="True"/>
+        <field name="doall" eval="False"/>
+    </record>
+
+</odoo>

@@ -3,9 +3,10 @@
     
     <!-- Main Menu -->
     <menuitem id="menu_tennis_club_root"
-              name="Tennis Clubs"
+              name="Tennis Club"
               sequence="10"
-              web_icon="tennis_club,static/description/icon.png"/>
+              web_icon="tennis_club,static/description/icon.png"
+              groups="base.group_user"/>
     
     <!-- Courts Submenu -->
     <menuitem id="menu_tennis_club_courts"

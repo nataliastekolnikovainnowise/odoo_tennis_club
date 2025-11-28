@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_tennis_training_session_form_reminder" model="ir.ui.view">
+        <field name="name">tennis.training.session.form.reminder</field>
+        <field name="model">tennis.training.session</field>
+        <field name="inherit_id" ref="tennis_club.view_tennis_training_session_form"/>
+        <field name="arch" type="xml">
+            <field name="client_ids" position="after">
+                <field name="reminder_hours" 
+                       string="Reminder (hours before)" 
+                       help="Send reminder N hours before training. Examples: 0.083 = 5 min, 0.25 = 15 min, 1 = 1 hour, 24 = 24 hours"/>
+            </field>
+        </field>
+    </record>
+</odoo>
