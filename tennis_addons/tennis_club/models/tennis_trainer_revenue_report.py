@@ -114,6 +114,14 @@ class TennisTrainerRevenueReport(models.Model):
             ("status", "=", "completed"),
         ]
         
+        # Filter by manager's center
+        user = self.env.user
+        if user.has_group("tennis_club.group_tennis_manager"):
+            employee = self.env["hr.employee"].search([("user_id", "=", user.id)], limit=1)
+            if employee and employee.center_id:
+                domain.append(("center_id", "=", employee.center_id.id))
+        
+        
         if self.trainer_id:
             domain.append(("trainer_id", "=", self.trainer_id.id))
         
