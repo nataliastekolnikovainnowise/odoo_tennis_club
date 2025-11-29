@@ -16,4 +16,4 @@ from . import tennis_center_revenue_report
 from . import tennis_training_session_time_slot
 from . import telegram_notification
 from . import telegram_helper
-from . import tennis_training_reminder
+from . import tennis_training_reminder  # ПОСЛЕ tennis_training_session
