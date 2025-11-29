@@ -25,7 +25,6 @@
         "security/tennis_club_security.xml",
         "security/ir.model.access.csv",
         "security/tennis_club_rules.xml",
-        "data/ir_rule_data.xml",
         "data/tennis_training_type_data.xml",
         "data/tennis_training_session_sequence.xml",
         "data/tennis_training_reminder_cron.xml",
