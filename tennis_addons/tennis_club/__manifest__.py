@@ -19,7 +19,6 @@
         "contacts",
         "calendar",   
         "mail", 
-        "queue_job",
     ],
     "data": [
         "security/tennis_club_groups.xml",
