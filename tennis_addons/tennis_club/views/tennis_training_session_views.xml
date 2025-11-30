@@ -16,9 +16,9 @@
                 <field name="trainer_id"/>
                 <field name="training_type_id"/>
                 <field name="client_ids" widget="many2many_tags"/>
-                <field name="price" widget="monetary" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
-                <field name="trainer_cost" widget="monetary" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
-                <field name="revenue" widget="monetary" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
+                <field name="price" widget="monetary"/>
+                <field name="trainer_cost" widget="monetary"/>
+                <field name="revenue" widget="monetary"/>
                 <field name="status" decoration-success="status == 'completed'" decoration-info="status == 'confirmed'" decoration-muted="status == 'cancelled'"/>
                 <field name="payment_status"/>
             </list>
@@ -33,7 +33,7 @@
             <form>
                 <header>
                     <!-- Action Buttons -->
-                    <button name="action_confirm" string="Confirm" type="object" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director" 
+                    <button name="action_confirm" string="Confirm" type="object" 
                             class="oe_highlight" 
                             invisible="status != 'draft' or needs_approval"/>
                     
@@ -41,7 +41,7 @@
                             class="oe_highlight" 
                             invisible="status != 'pending_approval' or not needs_approval"/>
                     
-                    <button name="action_complete" string="Complete" type="object" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director" 
+                    <button name="action_complete" string="Complete" type="object" 
                             class="oe_highlight" 
                             invisible="status != 'confirmed'"/>
                     
@@ -82,7 +82,8 @@
                                    readonly="is_current_user_trainer"
                                    context="{'default_trainer_center': True}"/>
                             <field name="court_id"/>
-                            <field name="trainer_id" 
+                            <field name="trainer_id"
+                                   domain="[('is_trainer', '=', True), ('center_id', '=', center_id)]" 
                                    readonly="is_current_user_trainer"
                                    context="{'default_current_trainer': True}"/>
                             <field name="training_type_id"/>
@@ -99,9 +100,9 @@
                     </group>
                     <group>
                         <group>
-                            <field name="price" readonly="1" widget="monetary" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
-                            <field name="trainer_cost" readonly="1" widget="monetary" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
-                            <field name="revenue" readonly="1" widget="monetary" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
+                            <field name="price" readonly="1" widget="monetary"/>
+                            <field name="trainer_cost" readonly="1" widget="monetary"/>
+                            <field name="revenue" readonly="1" widget="monetary"/>
                             <field name="currency_id" invisible="1"/>
                             <field name="payment_status"/>
                         </group>
@@ -163,7 +164,9 @@
                       date_start="time_from" 
                       date_stop="time_to"
                       color="trainer_id"
-                      mode="week">
+                      mode="week"
+                      quick_create="1"
+                      event_open_popup="1">
                 <field name="name"/>
                 <field name="trainer_id"/>
                 <field name="court_id"/>
@@ -182,8 +185,8 @@
                 <field name="date"/>
                 <field name="trainer_id"/>
                 <field name="court_id"/>
-                <field name="price" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
-                <field name="revenue" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/>
+                <field name="price"/>
+                <field name="revenue"/>
                 <field name="status"/>
                 <templates>
                     <t t-name="kanban-box">
@@ -193,8 +196,8 @@
                                 <div><field name="date"/> - <field name="time_from" widget="datetime"/></div>
                                 <div>Trainer: <field name="trainer_id"/></div>
                                 <div>Court: <field name="court_id"/></div>
-                                <div>Price: <field name="price" widget="monetary" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/></div>
-                                <div>Revenue: <field name="revenue" widget="monetary" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director"/></div>
+                                <div>Price: <field name="price" widget="monetary"/></div>
+                                <div>Revenue: <field name="revenue" widget="monetary"/></div>
                             </div>
                         </div>
                     </t>

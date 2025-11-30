@@ -434,15 +434,17 @@ class TennisTrainingSession(models.Model):
                 session.trainer_cost = 0.0
                 session.price = 0.0
                 session.revenue = 0.0
-    
-    @api.constrains("trainer_id", "center_id")
-    def _check_trainer_center(self):
-        """Validate trainer belongs to the same center."""
-        for session in self:
             if session.trainer_id and session.center_id:
                 if session.trainer_id.center_id != session.center_id:
                     raise ValidationError(
                         f"Trainer {session.trainer_id.name} is not assigned to {session.center_id.name}!"
+                    )
+            # Also validate court belongs to the same center
+            if session.court_id and session.center_id:
+                if session.court_id.center_id != session.center_id:
+                    raise ValidationError(
+                        f"Court {session.court_id.name} belongs to {session.court_id.center_id.name}, "
+                        f"but session is assigned to {session.center_id.name}!"
                     )
     
     @api.constrains("client_ids", "training_type_id")
@@ -526,6 +528,17 @@ class TennisTrainingSession(models.Model):
                 break
     
     @api.onchange("date")
+    @api.onchange("center_id")
+    def _onchange_center_clear_fields(self):
+        """Clear court and trainer when center changes to prevent cross-center assignments."""
+        # Only clear if center actually changed (not on initial load)
+        if self._origin.center_id and self.center_id != self._origin.center_id:
+            # Center changed - clear court and trainer to force re-selection
+            self.court_id = False
+            if not self.is_current_user_trainer:
+                # Only clear trainer for non-trainers (directors/managers)
+                self.trainer_id = False
+
     def _onchange_date_sync_times(self):
         """Sync date with times when date changes."""
         if self.date:
