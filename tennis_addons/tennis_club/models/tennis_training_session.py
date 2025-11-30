@@ -355,10 +355,8 @@ class TennisTrainingSession(models.Model):
         is_trainer = any(emp.sudo().is_trainer for emp in employees)
         if is_trainer:
             if any(field in vals for field in important_fields):
-                for record in self:
-                    if record.status in ["confirmed", "completed"]:
-                        vals["needs_approval"] = True
-                        vals["status"] = "pending_approval"
+                vals["needs_approval"] = True
+                vals["status"] = "pending_approval"
         
         if "status" in vals and vals["status"] == "confirmed":
             for record in self:
@@ -629,7 +627,7 @@ class TennisTrainingSession(models.Model):
                 raise UserError(_("Only pending sessions can be approved!"))
             
             session.write({
-                "needs_approval": False,
+                "needs_approval": session.created_by_trainer,  # Keep approval requirement for trainer sessions
                 "approved_by": current_employee.id if current_employee else False,
                 "approval_date": fields.Datetime.now(),
                 "status": "confirmed"
@@ -668,7 +666,7 @@ class TennisTrainingSession(models.Model):
             
             session.write({
                 "status": "draft",
-                "needs_approval": False,
+                "needs_approval": session.created_by_trainer,  # Keep approval requirement for trainer sessions
                 "approved_by": False,
                 "approval_date": False,
             })

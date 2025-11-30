@@ -33,7 +33,7 @@
             <form>
                 <header>
                     <!-- Action Buttons -->
-                    <button name="action_confirm" string="Confirm" type="object" 
+                    <button name="action_confirm" string="Confirm" type="object" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director" 
                             class="oe_highlight" 
                             invisible="status != 'draft' or needs_approval"/>
                     
@@ -41,7 +41,7 @@
                             class="oe_highlight" 
                             invisible="status != 'pending_approval' or not needs_approval"/>
                     
-                    <button name="action_complete" string="Complete" type="object" 
+                    <button name="action_complete" string="Complete" type="object" groups="tennis_club.group_tennis_manager,tennis_club.group_tennis_director" 
                             class="oe_highlight" 
                             invisible="status != 'confirmed'"/>
                     
