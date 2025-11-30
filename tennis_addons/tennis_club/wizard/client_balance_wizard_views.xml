@@ -18,7 +18,7 @@
                         <field name="amount" widget="monetary"/>
                         <field name="new_balance" widget="monetary" 
                                decoration-success="new_balance >= 0"
-                               decoration-danger="new_balance < 0"/>
+                               decoration-danger="new_balance &lt; 0"/>
                     </group>
                 </group>
                 <group>
@@ -39,5 +39,4 @@
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>
-
 </odoo>

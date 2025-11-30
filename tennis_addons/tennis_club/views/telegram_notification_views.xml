@@ -7,7 +7,7 @@
         <field name="model">telegram.notification</field>
         <field name="arch" type="xml">
             <list>
-                <field name="send_date"/>
+                <field name="sent_date"/>
                 <field name="partner_id"/>
                 <field name="message_type"/>
                 <field name="session_id"/>
@@ -31,9 +31,8 @@
                             <field name="session_id"/>
                         </group>
                         <group>
-                            <field name="send_date"/>
+                            <field name="sent_date"/>
                             <field name="sent_successfully"/>
-                            <field name="telegram_message_id"/>
                         </group>
                     </group>
                     <group>

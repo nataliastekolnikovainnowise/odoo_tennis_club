@@ -30,10 +30,9 @@ class TennisTrainingSession(models.Model):
         string="Center",
         required=True,
         default=lambda self: self._default_center_id(),
-        domain=lambda self: self._domain_center_id(),
         help="Tennis center"
     )
-    
+
     court_id = fields.Many2one(
         comodel_name="tennis.court",
         string="Court",
@@ -41,13 +40,13 @@ class TennisTrainingSession(models.Model):
         domain="[('center_id', '=', center_id)]",
         help="Tennis court"
     )
-    
+
     trainer_id = fields.Many2one(
         comodel_name="hr.employee",
         string="Trainer",
         required=True,
         default=lambda self: self._default_trainer_id(),
-        domain=lambda self: self._domain_trainer_id(),
+        domain="[('is_trainer', '=', True)]",
         help="Trainer (must be from same center)"
     )
     
@@ -265,76 +264,80 @@ class TennisTrainingSession(models.Model):
     @api.model
     def _default_center_id(self):
         """Default center to trainer's center if current user is trainer."""
-        current_employee = self.env["hr.employee"].search([
+        # Search without is_trainer in domain to avoid hr_employee_public issues
+        employees = self.env["hr.employee"].with_context(active_test=False).search([
             ("user_id", "=", self.env.uid)
-        ], limit=1)
-        
-        if current_employee and current_employee.is_trainer and current_employee.center_id:
-            return current_employee.center_id.id
-        
+        ])
+
+        for emp in employees:
+            # Access is_trainer field directly on the main table
+            if emp.sudo().is_trainer and emp.sudo().center_id:
+                return emp.center_id.id
+
         return False
-    
+
     @api.model
     def _default_trainer_id(self):
         """Default trainer to current user if they are a trainer."""
-        current_employee = self.env["hr.employee"].search([
+        # Search without is_trainer in domain to avoid hr_employee_public issues
+        employees = self.env["hr.employee"].with_context(active_test=False).search([
             ("user_id", "=", self.env.uid)
-        ], limit=1)
-        
-        if current_employee and current_employee.is_trainer:
-            return current_employee.id
-        
+        ])
+
+        for emp in employees:
+            # Access is_trainer field directly on the main table
+            if emp.sudo().is_trainer:
+                return emp.id
+
         return False
-    
+
     def _domain_center_id(self):
         """Domain for center - trainers see only their center."""
-        current_employee = self.env["hr.employee"].search([
-            ("user_id", "=", self.env.uid)
-        ], limit=1)
-        
-        if current_employee and current_employee.is_trainer and current_employee.center_id:
-            return [('id', '=', current_employee.center_id.id)]
-        
+        # Not used anymore - removed from field definition
         return []
-    
+
     def _domain_trainer_id(self):
         """Domain for trainer - trainers see only themselves."""
-        current_employee = self.env["hr.employee"].search([
-            ("user_id", "=", self.env.uid)
-        ], limit=1)
-        
-        if current_employee and current_employee.is_trainer:
-            return [('id', '=', current_employee.id), ('is_trainer', '=', True)]
-        
+        # Not used anymore - using static domain instead
         return [('is_trainer', '=', True)]
-    
+
     @api.depends_context('uid')
     def _compute_is_current_user_trainer(self):
         """Check if current user is a trainer."""
-        current_employee = self.env["hr.employee"].search([
+        # Search without is_trainer in domain to avoid hr_employee_public issues
+        employees = self.env["hr.employee"].with_context(active_test=False).search([
             ("user_id", "=", self.env.uid)
-        ], limit=1)
-        
+        ])
+
+        is_trainer = False
+        for emp in employees:
+            if emp.sudo().is_trainer:
+                is_trainer = True
+                break
+
         for session in self:
-            session.is_current_user_trainer = bool(current_employee and current_employee.is_trainer)
+            session.is_current_user_trainer = is_trainer
     
     @api.model
     def create(self, vals):
         """Generate sequence number and check if created by trainer."""
         if vals.get("name", "New") == "New":
             vals["name"] = self.env["ir.sequence"].next_by_code("tennis.training.session") or "New"
-        
-        current_employee = self.env["hr.employee"].search([
+
+        # Search without is_trainer in domain to avoid hr_employee_public issues
+        employees = self.env["hr.employee"].with_context(active_test=False).search([
             ("user_id", "=", self.env.uid)
-        ], limit=1)
-        
-        if current_employee and current_employee.is_trainer:
-            vals["created_by_trainer"] = True
-            vals["needs_approval"] = True
-            vals["status"] = "pending_approval"
-            if "trainer_id" not in vals:
-                vals["trainer_id"] = current_employee.id
-        
+        ])
+
+        for emp in employees:
+            if emp.sudo().is_trainer:
+                vals["created_by_trainer"] = True
+                vals["needs_approval"] = True
+                vals["status"] = "pending_approval"
+                if "trainer_id" not in vals:
+                    vals["trainer_id"] = emp.id
+                break
+
         return super().create(vals)
     
     def write(self, vals):
@@ -343,12 +346,14 @@ class TennisTrainingSession(models.Model):
         _logger = logging.getLogger(__name__)
         
         important_fields = ["date", "time_from", "time_to", "court_id", "client_ids", "training_type_id"]
-        
-        current_employee = self.env["hr.employee"].search([
+
+        # Search without is_trainer in domain to avoid hr_employee_public issues
+        employees = self.env["hr.employee"].with_context(active_test=False).search([
             ("user_id", "=", self.env.uid)
-        ], limit=1)
-        
-        if current_employee and current_employee.is_trainer:
+        ])
+
+        is_trainer = any(emp.sudo().is_trainer for emp in employees)
+        if is_trainer:
             if any(field in vals for field in important_fields):
                 for record in self:
                     if record.status in ["confirmed", "completed"]:
@@ -509,15 +514,18 @@ class TennisTrainingSession(models.Model):
     @api.onchange("center_id", "trainer_id")
     def _onchange_auto_fill_trainer_fields(self):
         """Auto-fill center and trainer for trainers on form open."""
-        current_employee = self.env["hr.employee"].search([
+        # Search without is_trainer in domain to avoid hr_employee_public issues
+        employees = self.env["hr.employee"].with_context(active_test=False).search([
             ("user_id", "=", self.env.uid)
-        ], limit=1)
-        
-        if current_employee and current_employee.is_trainer:
-            if not self.center_id and current_employee.center_id:
-                self.center_id = current_employee.center_id
-            if not self.trainer_id:
-                self.trainer_id = current_employee
+        ])
+
+        for emp in employees:
+            if emp.sudo().is_trainer:
+                if not self.center_id and emp.sudo().center_id:
+                    self.center_id = emp.center_id
+                if not self.trainer_id:
+                    self.trainer_id = emp
+                break
     
     @api.onchange("date")
     def _onchange_date_sync_times(self):

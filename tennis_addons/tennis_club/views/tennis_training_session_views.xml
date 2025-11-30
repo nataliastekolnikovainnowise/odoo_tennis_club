@@ -79,11 +79,11 @@
                     <group>
                         <group>
                             <field name="center_id" 
-                                   attrs="{'readonly': [('is_current_user_trainer', '=', True)]}"
+                                   readonly="is_current_user_trainer"
                                    context="{'default_trainer_center': True}"/>
                             <field name="court_id"/>
                             <field name="trainer_id" 
-                                   attrs="{'readonly': [('is_current_user_trainer', '=', True)]}"
+                                   readonly="is_current_user_trainer"
                                    context="{'default_current_trainer': True}"/>
                             <field name="training_type_id"/>
                         </group>

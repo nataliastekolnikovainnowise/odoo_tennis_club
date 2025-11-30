@@ -16,6 +16,14 @@
     </record>
 
     <!-- ========== CENTERS ========== -->
+    <!-- Trainer can only see their own center -->
+    <record id="rule_center_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Center Only</field>
+        <field name="model_id" ref="model_tennis_center"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('id', '=', user.employee_ids.center_id.id)]</field>
+    </record>
+
     <record id="rule_center_manager" model="ir.rule">
         <field name="name">Manager: Own Centers Only</field>
         <field name="model_id" ref="model_tennis_center"/>
@@ -83,6 +91,14 @@
     </record>
 
     <!-- ========== TRAINER RATES ========== -->
+    <!-- Trainer can only see their own rates -->
+    <record id="rule_rate_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Rates Only</field>
+        <field name="model_id" ref="model_tennis_trainer_rate"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('trainer_id.user_id', '=', user.id)]</field>
+    </record>
+
     <record id="rule_rate_manager" model="ir.rule">
         <field name="name">Manager: Own Trainers Rates</field>
         <field name="model_id" ref="model_tennis_trainer_rate"/>

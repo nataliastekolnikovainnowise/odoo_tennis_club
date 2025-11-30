@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
     <!-- Security Categories -->
     <record id="module_category_tennis_club" model="ir.module.category">
         <field name="name">Tennis Club</field>
@@ -29,54 +28,6 @@
         <field name="implied_ids" eval="[(4, ref('group_tennis_manager'))]"/>
     </record>
 
-    <!-- =========================================== -->
-    <!-- RECORD RULES FOR TENNIS CENTER -->
-    <!-- =========================================== -->
-
-    <record id="tennis_center_trainer_rule" model="ir.rule">
-        <field name="name">Trainer: Own Center Only</field>
-        <field name="model_id" ref="model_tennis_center"/>
-        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
-        <field name="domain_force">[('id', 'in', user.employee_id.center_ids.ids)]</field>
-    </record>
-
-    <record id="tennis_center_manager_rule" model="ir.rule">
-        <field name="name">Manager: Managed Centers</field>
-        <field name="model_id" ref="model_tennis_center"/>
-        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
-        <field name="domain_force">[('manager_id', '=', user.employee_id.id)]</field>
-    </record>
-
-    <record id="tennis_center_director_rule" model="ir.rule">
-        <field name="name">Director: All Centers</field>
-        <field name="model_id" ref="model_tennis_center"/>
-        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
-        <field name="domain_force">[(1, '=', 1)]</field>
-    </record>
-
-    <!-- =========================================== -->
-    <!-- RECORD RULES FOR TRAINING SESSION -->
-    <!-- =========================================== -->
-
-    <record id="tennis_session_trainer_rule" model="ir.rule">
-        <field name="name">Trainer: Own Sessions Only</field>
-        <field name="model_id" ref="model_tennis_training_session"/>
-        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
-        <field name="domain_force">[('trainer_id', '=', user.employee_id.id)]</field>
-    </record>
-
-    <record id="tennis_session_manager_rule" model="ir.rule">
-        <field name="name">Manager: Sessions in Managed Centers</field>
-        <field name="model_id" ref="model_tennis_training_session"/>
-        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
-        <field name="domain_force">[('center_id.manager_id', '=', user.employee_id.id)]</field>
-    </record>
-
-    <record id="tennis_all_director_rule" model="ir.rule">
-        <field name="name">Director: All Sessions</field>
-        <field name="model_id" ref="model_tennis_training_session"/>
-        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
-        <field name="domain_force">[(1, '=', 1)]</field>
-    </record>
-
+    <!-- NOTE: Record rules for models are defined in tennis_club_rules.xml -->
+    <!-- This file only contains group definitions to avoid conflicts -->
 </odoo>

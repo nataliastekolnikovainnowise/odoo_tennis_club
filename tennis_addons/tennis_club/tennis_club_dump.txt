@@ -1,0 +1,3534 @@
+=== __manifest__.py ===
+# -*- coding: utf-8 -*-
+{
+    "name": "Tennis Club Management",
+    "version": "18.0.1.0.0",
+    "category": "Sports",
+    "summary": "Tennis club network management system",
+    "description": """
+        Tennis Club Management System:
+        - Sports centers and courts management
+        - Training schedule management
+        - Trainers and clients management
+        - Financial analytics
+    """,
+    "author": "Natalia Stekolnikova",
+    "license": "LGPL-3",
+    "depends": [
+        "base",
+        "hr",
+        "contacts",
+        "calendar",   
+        "mail", 
+    ],
+    "data": [
+        "security/tennis_club_groups.xml",
+        "security/tennis_club_security.xml",
+        "security/ir.model.access.csv",
+        "security/tennis_club_rules.xml",
+        "data/tennis_training_type_data.xml",
+        "data/tennis_training_session_sequence.xml",
+        "data/tennis_training_reminder_cron.xml",
+        "data/court_schedule_status_data.xml",
+        "data/telegram_reminders_cron.xml",
+        # Views
+        "data/tennis_center_revenue_menu.xml",
+        "views/tennis_training_type_views.xml",
+        "views/court_schedule_views.xml",
+        "views/tennis_center_views.xml",
+        "views/tennis_court_views.xml",
+        "views/tennis_center_working_hours_views.xml",
+        "views/hr_employee_views.xml",
+        "views/tennis_trainer_availability_views.xml",
+        "views/res_partner_views.xml",
+        "views/tennis_trainer_rate_views.xml",
+        "views/tennis_center_price_views.xml",
+        "views/tennis_training_session_views.xml",
+        "views/tennis_trainer_revenue_report_views.xml",
+        "report/tennis_trainer_revenue_report_template.xml",
+        "report/tennis_center_revenue_report_template.xml",
+        "report/tennis_top_statistics_report_template.xml",
+        "views/tennis_center_revenue_report_views.xml",
+        "views/telegram_notification_views.xml",
+        # Wizards
+        "wizard/client_balance_wizard_views.xml",
+        "wizard/tennis_top_statistics_wizard_views.xml",
+        "views/tennis_menu.xml",
+    ],
+    "demo": [],
+    "installable": True,
+    "application": True,
+    "auto_install": False,
+}
+
+================ SECURITY ================
+=== security/tennis_club_groups.xml ===
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Base Tennis Club Group -->
+        <record id="group_tennis_base" model="res.groups">
+            <field name="name">Tennis Club User</field>
+            <field name="category_id" ref="base.module_category_administration"/>
+        </record>
+
+        <!-- Trainer Group -->
+        <record id="group_tennis_trainer" model="res.groups">
+            <field name="name">Trainer</field>
+            <field name="category_id" ref="base.module_category_administration"/>
+            <field name="implied_ids" eval="[(4, ref('group_tennis_base'))]"/>
+        </record>
+
+        <!-- Manager Group -->
+        <record id="group_tennis_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="category_id" ref="base.module_category_administration"/>
+            <field name="implied_ids" eval="[(4, ref('group_tennis_trainer'))]"/>
+        </record>
+
+        <!-- Director Group -->
+        <record id="group_tennis_director" model="res.groups">
+            <field name="name">Director</field>
+            <field name="category_id" ref="base.module_category_administration"/>
+            <field name="implied_ids" eval="[(4, ref('group_tennis_manager'))]"/>
+        </record>
+    </data>
+</odoo>
+
+=== security/tennis_club_rules.xml ===
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ========== HR EMPLOYEE (Trainers) ========== -->
+    <record id="rule_employee_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Trainers Only</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_employee_director" model="ir.rule">
+        <field name="name">Director: All Employees</field>
+        <field name="model_id" ref="hr.model_hr_employee"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== CENTERS ========== -->
+    <record id="rule_center_manager" model="ir.rule">
+        <field name="name">Manager: Own Centers Only</field>
+        <field name="model_id" ref="model_tennis_center"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_center_director" model="ir.rule">
+        <field name="name">Director: All Centers</field>
+        <field name="model_id" ref="model_tennis_center"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== COURTS ========== -->
+    <record id="rule_court_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Courts Only</field>
+        <field name="model_id" ref="model_tennis_court"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_court_director" model="ir.rule">
+        <field name="name">Director: All Courts</field>
+        <field name="model_id" ref="model_tennis_court"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== TRAINING SESSIONS ========== -->
+    <record id="rule_session_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Sessions Only</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('trainer_id.user_id', '=', user.id)]</field>
+    </record>
+
+    <record id="rule_session_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Sessions</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+
+    <record id="rule_session_director" model="ir.rule">
+        <field name="name">Director: All Sessions</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== TRAINER AVAILABILITY ========== -->
+    <record id="rule_availability_manager" model="ir.rule">
+        <field name="name">Manager: Own Trainers Availability</field>
+        <field name="model_id" ref="model_tennis_trainer_availability"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('trainer_id.center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_availability_director" model="ir.rule">
+        <field name="name">Director: All Availability</field>
+        <field name="model_id" ref="model_tennis_trainer_availability"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== TRAINER RATES ========== -->
+    <record id="rule_rate_manager" model="ir.rule">
+        <field name="name">Manager: Own Trainers Rates</field>
+        <field name="model_id" ref="model_tennis_trainer_rate"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('trainer_id.center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_rate_director" model="ir.rule">
+        <field name="name">Director: All Rates</field>
+        <field name="model_id" ref="model_tennis_trainer_rate"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== CENTER PRICES ========== -->
+    <record id="rule_price_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Prices</field>
+        <field name="model_id" ref="model_tennis_center_price"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_price_director" model="ir.rule">
+        <field name="name">Director: All Prices</field>
+        <field name="model_id" ref="model_tennis_center_price"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== TRAINER REVENUE REPORT LINES ========== -->
+    <record id="rule_trainer_revenue_report_line_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Report Lines</field>
+        <field name="model_id" ref="model_tennis_trainer_revenue_report_line"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('trainer_id.center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+    
+    <record id="rule_trainer_revenue_report_line_director" model="ir.rule">
+        <field name="name">Director: All Report Lines</field>
+        <field name="model_id" ref="model_tennis_trainer_revenue_report_line"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+</odoo>
+
+=== security/tennis_club_security.xml ===
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Security Categories -->
+    <record id="module_category_tennis_club" model="ir.module.category">
+        <field name="name">Tennis Club</field>
+        <field name="description">Manage tennis club operations</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <!-- Group: Tennis Trainer -->
+    <record id="group_tennis_trainer" model="res.groups">
+        <field name="name">Trainer</field>
+        <field name="category_id" ref="module_category_tennis_club"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Group: Tennis Manager -->
+    <record id="group_tennis_manager" model="res.groups">
+        <field name="name">Manager</field>
+        <field name="category_id" ref="module_category_tennis_club"/>
+        <field name="implied_ids" eval="[(4, ref('group_tennis_trainer'))]"/>
+    </record>
+
+    <!-- Group: Tennis Director -->
+    <record id="group_tennis_director" model="res.groups">
+        <field name="name">Director</field>
+        <field name="category_id" ref="module_category_tennis_club"/>
+        <field name="implied_ids" eval="[(4, ref('group_tennis_manager'))]"/>
+    </record>
+
+    <!-- =========================================== -->
+    <!-- RECORD RULES FOR TENNIS CENTER -->
+    <!-- =========================================== -->
+
+    <record id="tennis_center_trainer_rule" model="ir.rule">
+        <field name="name">Trainer: Own Center Only</field>
+        <field name="model_id" ref="model_tennis_center"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('id', 'in', user.employee_id.center_ids.ids)]</field>
+    </record>
+
+    <record id="tennis_center_manager_rule" model="ir.rule">
+        <field name="name">Manager: Managed Centers</field>
+        <field name="model_id" ref="model_tennis_center"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('manager_id', '=', user.employee_id.id)]</field>
+    </record>
+
+    <record id="tennis_center_director_rule" model="ir.rule">
+        <field name="name">Director: All Centers</field>
+        <field name="model_id" ref="model_tennis_center"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- =========================================== -->
+    <!-- RECORD RULES FOR TRAINING SESSION -->
+    <!-- =========================================== -->
+
+    <record id="tennis_session_trainer_rule" model="ir.rule">
+        <field name="name">Trainer: Own Sessions Only</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('trainer_id', '=', user.employee_id.id)]</field>
+    </record>
+
+    <record id="tennis_session_manager_rule" model="ir.rule">
+        <field name="name">Manager: Sessions in Managed Centers</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id', '=', user.employee_id.id)]</field>
+    </record>
+
+    <record id="tennis_all_director_rule" model="ir.rule">
+        <field name="name">Director: All Sessions</field>
+        <field name="model_id" ref="model_tennis_training_session"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+</odoo>
+
+=== security/ir.model.access.csv ===
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_tennis_center_base,tennis.center.base,model_tennis_center,tennis_club.group_tennis_base,1,0,0,0
+access_tennis_center_trainer,tennis.center.trainer,model_tennis_center,tennis_club.group_tennis_trainer,1,0,0,0
+access_tennis_center_manager,tennis.center.manager,model_tennis_center,tennis_club.group_tennis_manager,1,1,1,0
+access_tennis_center_director,tennis.center.director,model_tennis_center,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_court_base,tennis.court.base,model_tennis_court,tennis_club.group_tennis_base,1,0,0,0
+access_tennis_court_trainer,tennis.court.trainer,model_tennis_court,tennis_club.group_tennis_trainer,1,0,0,0
+access_tennis_court_manager,tennis.court.manager,model_tennis_court,tennis_club.group_tennis_manager,1,1,1,0
+access_tennis_court_director,tennis.court.director,model_tennis_court,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_training_type_base,tennis.training.type.base,model_tennis_training_type,tennis_club.group_tennis_base,1,0,0,0
+access_tennis_training_type_trainer,tennis.training.type.trainer,model_tennis_training_type,tennis_club.group_tennis_trainer,1,0,0,0
+access_tennis_training_type_manager,tennis.training.type.manager,model_tennis_training_type,tennis_club.group_tennis_manager,1,1,1,0
+access_tennis_training_type_director,tennis.training.type.director,model_tennis_training_type,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_training_session_trainer,tennis.training.session.trainer,model_tennis_training_session,tennis_club.group_tennis_trainer,1,1,1,0
+access_tennis_training_session_manager,tennis.training.session.manager,model_tennis_training_session,tennis_club.group_tennis_manager,1,1,1,1
+access_tennis_training_session_director,tennis.training.session.director,model_tennis_training_session,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_trainer_rate_trainer,tennis.trainer.rate.trainer,model_tennis_trainer_rate,tennis_club.group_tennis_trainer,1,0,0,0
+access_tennis_trainer_rate_manager,tennis.trainer.rate.manager,model_tennis_trainer_rate,tennis_club.group_tennis_manager,1,1,1,0
+access_tennis_trainer_rate_director,tennis.trainer.rate.director,model_tennis_trainer_rate,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_center_price_trainer,tennis.center.price.trainer,model_tennis_center_price,tennis_club.group_tennis_trainer,0,0,0,0
+access_tennis_center_price_manager,tennis.center.price.manager,model_tennis_center_price,tennis_club.group_tennis_manager,1,1,1,0
+access_tennis_center_price_director,tennis.center.price.director,model_tennis_center_price,tennis_club.group_tennis_director,1,1,1,1
+access_res_partner_trainer,res.partner.trainer,base.model_res_partner,tennis_club.group_tennis_trainer,1,0,0,0
+access_res_partner_manager,res.partner.manager,base.model_res_partner,tennis_club.group_tennis_manager,1,1,1,0
+access_res_partner_director,res.partner.director,base.model_res_partner,tennis_club.group_tennis_director,1,1,1,1
+access_telegram_notification_trainer,telegram.notification.trainer,model_telegram_notification,tennis_club.group_tennis_trainer,1,1,1,0
+access_telegram_notification_manager,telegram.notification.manager,model_telegram_notification,tennis_club.group_tennis_manager,1,1,1,1
+access_telegram_notification_director,telegram.notification.director,model_telegram_notification,tennis_club.group_tennis_director,1,1,1,1
+access_telegram_notification_all,telegram.notification.all,model_telegram_notification,base.group_user,1,1,1,0
+access_tennis_center_working_hours_trainer,tennis.center.working.hours.trainer,model_tennis_center_working_hours,tennis_club.group_tennis_trainer,1,0,0,0
+access_tennis_center_working_hours_manager,tennis.center.working.hours.manager,model_tennis_center_working_hours,tennis_club.group_tennis_manager,1,1,1,0
+access_tennis_center_working_hours_director,tennis.center.working.hours.director,model_tennis_center_working_hours,tennis_club.group_tennis_director,1,1,1,1
+access_court_schedule_status_trainer,court.schedule.status.trainer,model_court_schedule_status,tennis_club.group_tennis_trainer,1,0,0,0
+access_court_schedule_status_manager,court.schedule.status.manager,model_court_schedule_status,tennis_club.group_tennis_manager,1,1,1,0
+access_court_schedule_status_director,court.schedule.status.director,model_court_schedule_status,tennis_club.group_tennis_director,1,1,1,1
+access_court_schedule_trainer,court.schedule.trainer,model_court_schedule,tennis_club.group_tennis_trainer,1,0,0,0
+access_court_schedule_manager,court.schedule.manager,model_court_schedule,tennis_club.group_tennis_manager,1,1,1,0
+access_court_schedule_director,court.schedule.director,model_court_schedule,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_training_session_time_slot_trainer,tennis.training.session.time.slot.trainer,model_tennis_training_session_time_slot,tennis_club.group_tennis_trainer,1,1,1,0
+access_tennis_training_session_time_slot_manager,tennis.training.session.time.slot.manager,model_tennis_training_session_time_slot,tennis_club.group_tennis_manager,1,1,1,0
+access_tennis_training_session_time_slot_director,tennis.training.session.time.slot.director,model_tennis_training_session_time_slot,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_trainer_availability_trainer,tennis.trainer.availability.trainer,model_tennis_trainer_availability,tennis_club.group_tennis_trainer,1,1,1,0
+access_tennis_trainer_availability_manager,tennis.trainer.availability.manager,model_tennis_trainer_availability,tennis_club.group_tennis_manager,1,1,1,0
+access_tennis_trainer_availability_director,tennis.trainer.availability.director,model_tennis_trainer_availability,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_trainer_revenue_report_director,tennis.trainer.revenue.report.director,model_tennis_trainer_revenue_report,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_trainer_revenue_report_line_director,tennis.trainer.revenue.report.line.director,model_tennis_trainer_revenue_report_line,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_center_revenue_report_director,tennis.center.revenue.report.director,model_tennis_center_revenue_report,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_center_revenue_report_line_director,tennis.center.revenue.report.line.director,model_tennis_center_revenue_report_line,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_trainer_revenue_report_manager,tennis.trainer.revenue.report.manager,model_tennis_trainer_revenue_report,tennis_club.group_tennis_manager,1,0,0,0
+access_tennis_trainer_revenue_report_line_manager,tennis.trainer.revenue.report.line.manager,model_tennis_trainer_revenue_report_line,tennis_club.group_tennis_manager,1,0,0,0
+access_tennis_top_statistics_report_director,tennis.top.statistics.report.director,model_tennis_top_statistics_report,tennis_club.group_tennis_director,1,1,1,1
+access_telegram_notification_user,telegram.notification.user,model_telegram_notification,base.group_user,1,1,1,1
+access_telegram_notification_director,telegram.notification.director,model_telegram_notification,tennis_club.group_tennis_director,1,1,1,1
+access_tennis_training_reminder_user,access_tennis_training_reminder_user,model_tennis_training_reminder,base.group_user,1,0,0,0
+access_tennis_training_reminder_director,access_tennis_training_reminder_director,model_tennis_training_reminder,group_tennis_director,1,1,1,1
+access_tennis_training_reminder_manager,access_tennis_training_reminder_manager,model_tennis_training_reminder,group_tennis_manager,1,1,1,1
+
+================ MODELS ================
+=== models/court_schedule.py ===
+# -*- coding: utf-8 -*-
+"""Tennis Court Schedule Model."""
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+from datetime import datetime, timedelta
+
+
+class CourtSchedule(models.Model):
+    """Court Schedule - manages time slots for all courts."""
+    
+    _name = "court.schedule"
+    _description = "Tennis Court Schedule"
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _order = "date desc, time_from desc"
+    _rec_name = "display_name"
+    
+    # Core fields
+    court_id = fields.Many2one(
+        comodel_name="tennis.court",
+        string="Court",
+        required=True,
+        ondelete="cascade",
+        index=True,
+    )
+    
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Sports Center",
+        related="court_id.center_id",
+        store=True,
+        index=True,
+    )
+    
+    date = fields.Date(
+        string="Date",
+        required=True,
+        index=True,
+    )
+    
+    time_from = fields.Datetime(
+        string="Start Time",
+        required=True,
+        index=True,
+    )
+    
+    time_to = fields.Datetime(
+        string="End Time",
+        required=True,
+    )
+    
+    # Relationships
+    session_id = fields.Many2one(
+        comodel_name="tennis.training.session",
+        string="Training Session",
+        ondelete="cascade",
+        help="Linked training session (if booked)",
+    )
+    
+    # Status
+    status_id = fields.Many2one(
+        comodel_name="court.schedule.status",
+        string="Status",
+        required=True,
+        index=True,
+        default=lambda self: self.env.ref('tennis_club.status_available', raise_if_not_found=False),
+    )
+    
+    is_recurring = fields.Boolean(
+        string="Is Recurring",
+        default=False,
+        help="Part of recurring schedule",
+    )
+    
+    # Additional info
+    notes = fields.Text(
+        string="Notes",
+        help="Additional notes (e.g., maintenance reason)",
+    )
+    
+    blocked_reason = fields.Char(
+        string="Block Reason",
+        help="Reason for blocking this slot",
+    )
+    
+    # Computed fields
+    display_name = fields.Char(
+        string="Display Name",
+        compute="_compute_display_name",
+        store=True,
+    )
+    
+    duration = fields.Float(
+        string="Duration (hours)",
+        compute="_compute_duration",
+        store=True,
+    )
+    
+    trainer_id = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Trainer",
+        related="session_id.trainer_id",
+        store=True,
+    )
+    
+    # Constraints
+    _sql_constraints = [
+        (
+            "check_time_order",
+            "CHECK(time_to > time_from)",
+            "End time must be after start time!",
+        ),
+    ]
+    
+    @api.depends("court_id", "date", "time_from", "time_to", "status_id")
+    def _compute_display_name(self):
+        """Compute display name."""
+        for record in self:
+            if record.court_id and record.date:
+                time_str = ""
+                if record.time_from:
+                    time_str = record.time_from.strftime("%H:%M")
+                    if record.time_to:
+                        time_str += f"-{record.time_to.strftime('%H:%M')}"
+                
+                # Status icon
+                status_icon = ""
+                if record.status_id:
+                    status_map = {
+                        "Available": "🟢",
+                        "Booked": "🔴",
+                        "Blocked": "⚫",
+                    }
+                    status_icon = status_map.get(record.status_id.name, "")
+                
+                record.display_name = (
+                    f"{status_icon} {record.court_id.name} - "
+                    f"{record.date} {time_str}"
+                )
+            else:
+                record.display_name = "New Schedule Slot"
+    
+    @api.depends("time_from", "time_to")
+    def _compute_duration(self):
+        """Compute duration in hours."""
+        for record in self:
+            if record.time_from and record.time_to:
+                delta = record.time_to - record.time_from
+                record.duration = delta.total_seconds() / 3600.0
+            else:
+                record.duration = 0.0
+    
+    @api.constrains("court_id", "date", "time_from", "time_to")
+    def _check_no_overlap(self):
+        """Ensure no overlapping slots for the same court."""
+        for record in self:
+            # Get available status
+            available_status = self.env.ref('tennis_club.status_available', raise_if_not_found=False)
+            
+            overlapping = self.search([
+                ("id", "!=", record.id),
+                ("court_id", "=", record.court_id.id),
+                ("date", "=", record.date),
+                ("time_from", "<", record.time_to),
+                ("time_to", ">", record.time_from),
+                ("status_id", "!=", available_status.id if available_status else False),
+            ])
+            
+            if overlapping:
+                raise ValidationError(
+                    f"Time slot overlaps with existing schedule:\n"
+                    f"{overlapping[0].display_name}"
+                )
+    
+    @api.constrains("time_from", "time_to", "court_id")
+    def _check_working_hours(self):
+        """Ensure slot is within court working hours."""
+        for record in self:
+            if not record.court_id or not record.time_from:
+                continue
+            
+            center = record.court_id.center_id
+            if not center:
+                continue
+            
+            # Get working hours for this day
+            weekday = record.date.weekday()
+            working_hours = self.env["tennis.center.working.hours"].search([
+                ("center_id", "=", center.id),
+                ("day_of_week", "=", str(weekday)),
+            ], limit=1)
+            
+            if not working_hours:
+                continue
+            
+            # Check if slot is within working hours
+            slot_time_from = record.time_from.time()
+            slot_time_to = record.time_to.time()
+            
+            # Определяем правильные имена полей и типы
+            hour_from_value = None
+            hour_to_value = None
+            
+            # Пробуем разные варианты имен полей
+            for attr_name in ['hour_from_time', 'hour_from', 'time_from']:
+                if hasattr(working_hours, attr_name):
+                    hour_from_value = getattr(working_hours, attr_name)
+                    if hour_from_value:
+                        break
+            
+            for attr_name in ['hour_to_time', 'hour_to', 'time_to']:
+                if hasattr(working_hours, attr_name):
+                    hour_to_value = getattr(working_hours, attr_name)
+                    if hour_to_value:
+                        break
+            
+            if not hour_from_value or not hour_to_value:
+                # Если нет времени в working hours - пропускаем проверку
+                continue
+            
+            # Конвертировать Float в time если нужно
+            if isinstance(hour_from_value, float):
+                # Float часы (например 9.5 = 09:30)
+                hours = int(hour_from_value)
+                minutes = int((hour_from_value - hours) * 60)
+                hour_from = datetime.strptime(f"{hours:02d}:{minutes:02d}", "%H:%M").time()
+            else:
+                hour_from = hour_from_value
+            
+            if isinstance(hour_to_value, float):
+                hours = int(hour_to_value)
+                minutes = int((hour_to_value - hours) * 60)
+                hour_to = datetime.strptime(f"{hours:02d}:{minutes:02d}", "%H:%M").time()
+            else:
+                hour_to = hour_to_value
+            
+            # Проверка
+            if (slot_time_from < hour_from or slot_time_to > hour_to):
+                raise ValidationError(
+                    f"Schedule slot must be within working hours:\n"
+                    f"{hour_from.strftime('%H:%M')} - {hour_to.strftime('%H:%M')}"
+                )
+    
+    def action_block_slot(self):
+        """Block this time slot."""
+        self.ensure_one()
+        booked_status = self.env.ref('tennis_club.status_booked', raise_if_not_found=False)
+        blocked_status = self.env.ref('tennis_club.status_blocked', raise_if_not_found=False)
+        
+        if self.status_id == booked_status and self.session_id:
+            raise ValidationError(
+                "Cannot block a slot with an active training session!"
+            )
+        self.status_id = blocked_status
+    
+    def action_unblock_slot(self):
+        """Unblock this time slot."""
+        self.ensure_one()
+        available_status = self.env.ref('tennis_club.status_available', raise_if_not_found=False)
+        
+        self.status_id = available_status
+        self.blocked_reason = False
+        self.notes = False
+    
+    @api.model
+    def get_available_slots(self, court_id, date, duration=1.0):
+        """Get list of available time slots for a court on a date.
+        
+        Args:
+            court_id: ID of the court
+            date: Date to check (datetime.date or string)
+            duration: Duration in hours (default: 1.0)
+            
+        Returns:
+            List of dicts with available time slots
+        """
+        court = self.env["tennis.court"].browse(court_id)
+        if not court.exists():
+            return []
+        
+        if isinstance(date, str):
+            date = fields.Date.from_string(date)
+        
+        weekday = date.weekday()
+        working_hours = self.env["tennis.center.working.hours"].search([
+            ("center_id", "=", court.center_id.id),
+            ("day_of_week", "=", str(weekday)),
+        ], limit=1)
+        
+        if not working_hours:
+            return []
+        
+        # Определяем правильные имена полей
+        hour_from_value = None
+        hour_to_value = None
+        
+        for attr_name in ['hour_from_time', 'hour_from', 'time_from']:
+            if hasattr(working_hours, attr_name):
+                hour_from_value = getattr(working_hours, attr_name)
+                if hour_from_value:
+                    break
+        
+        for attr_name in ['hour_to_time', 'hour_to', 'time_to']:
+            if hasattr(working_hours, attr_name):
+                hour_to_value = getattr(working_hours, attr_name)
+                if hour_to_value:
+                    break
+        
+        if not hour_from_value or not hour_to_value:
+            return []
+        
+        # Конвертировать Float в time если нужно
+        if isinstance(hour_from_value, float):
+            hours = int(hour_from_value)
+            minutes = int((hour_from_value - hours) * 60)
+            hour_from = datetime.strptime(f"{hours:02d}:{minutes:02d}", "%H:%M").time()
+        else:
+            hour_from = hour_from_value
+        
+        if isinstance(hour_to_value, float):
+            hours = int(hour_to_value)
+            minutes = int((hour_to_value - hours) * 60)
+            hour_to = datetime.strptime(f"{hours:02d}:{minutes:02d}", "%H:%M").time()
+        else:
+            hour_to = hour_to_value
+        
+        # Get available status
+        available_status = self.env.ref('tennis_club.status_available', raise_if_not_found=False)
+        
+        # Get occupied slots
+        occupied_slots = self.search([
+            ("court_id", "=", court_id),
+            ("date", "=", date),
+            ("status_id", "!=", available_status.id if available_status else False),
+        ])
+        
+        available = []
+        
+        start_time = datetime.combine(date, hour_from)
+        end_time = datetime.combine(date, hour_to)
+        
+        current = start_time
+        while current + timedelta(hours=duration) <= end_time:
+            slot_end = current + timedelta(hours=duration)
+            
+            # Check if slot is free
+            is_free = True
+            for occupied in occupied_slots:
+                if (current < occupied.time_to and slot_end > occupied.time_from):
+                    is_free = False
+                    break
+            
+            if is_free:
+                available.append({
+                    "time_from": current,
+                    "time_to": slot_end,
+                    "display": f"{current.strftime('%H:%M')} - {slot_end.strftime('%H:%M')}",
+                })
+            
+            current += timedelta(hours=1)
+        
+        return available
+
+=== models/court_schedule_status.py ===
+# -*- coding: utf-8 -*-
+"""Court Schedule Status Model - like crm.stage."""
+
+from odoo import models, fields, api
+
+
+class CourtScheduleStatus(models.Model):
+    """Status model for court schedule (like CRM stages)."""
+    
+    _name = "court.schedule.status"
+    _description = "Court Schedule Status"
+    _order = "sequence, id"
+    
+    name = fields.Char(
+        string="Status Name",
+        required=True,
+        translate=True,
+    )
+    
+    sequence = fields.Integer(
+        string="Sequence",
+        default=10,
+        help="Used to order statuses",
+    )
+    
+    fold = fields.Boolean(
+        string="Folded in Kanban",
+        default=False,
+        help="This status is folded in the kanban view",
+    )
+    
+    description = fields.Text(
+        string="Description",
+        help="Description of this status",
+    )
+    
+    active = fields.Boolean(
+        string="Active",
+        default=True,
+    )
+
+=== models/hr_employee.py ===
+# -*- coding: utf-8 -*-
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+
+
+class HrEmployee(models.Model):
+    """Extend Employee for Tennis Trainers."""
+
+    _inherit = "hr.employee"
+
+    is_trainer = fields.Boolean(
+        string="Is Trainer",
+        default=False,
+        help="Check if this employee is a tennis trainer",
+    )
+
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Tennis Center",
+        help="Tennis center where the trainer works",
+        ondelete="restrict",
+    )
+
+    trainer_rate_ids = fields.One2many(
+        comodel_name="tennis.trainer.rate",
+        inverse_name="trainer_id",
+        string="Hourly Rates",
+        help="Trainer's hourly rates by training type",
+    )
+
+    training_session_count = fields.Integer(
+        string="Training Sessions",
+        compute="_compute_training_session_count",
+        help="Number of training sessions for this trainer",
+    )
+
+    # Добавим computed field для общей прибыли тренера
+    total_revenue = fields.Monetary(
+        string="Total Revenue",
+        compute="_compute_total_revenue",
+        currency_field="currency_id",
+        help="Total revenue generated by this trainer",
+    )
+
+    current_month_revenue = fields.Monetary(
+        string="Revenue (Current Month)",
+        compute="_compute_current_month_revenue",
+        currency_field="currency_id",
+        help="Revenue for current month (from 1st day of month to today)",
+    )
+
+    currency_id = fields.Many2one(
+        "res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+    )
+
+    @api.depends("is_trainer")
+    def _compute_training_session_count(self):
+        """Compute number of training sessions."""
+        for trainer in self:
+            if trainer.is_trainer:
+                trainer.training_session_count = self.env[
+                    "tennis.training.session"
+                ].search_count([("trainer_id", "=", trainer.id)])
+            else:
+                trainer.training_session_count = 0
+
+    @api.depends("is_trainer")
+    def _compute_total_revenue(self):
+        """Compute total revenue for trainer."""
+        for trainer in self:
+            if trainer.is_trainer:
+                sessions = self.env["tennis.training.session"].search(
+                    [
+                        ("trainer_id", "=", trainer.id),
+                        ("status", "=", "completed"),
+                    ]
+                )
+                trainer.total_revenue = sum(sessions.mapped("revenue"))
+            else:
+                trainer.total_revenue = 0.0
+
+    def _compute_current_month_revenue(self):
+        """Compute revenue for current month."""
+        from datetime import datetime
+        for trainer in self:
+            if trainer.is_trainer:
+                # First day of current month
+                today = datetime.today()
+                first_day = today.replace(day=1)
+                
+                sessions = self.env["tennis.training.session"].search([
+                    ("trainer_id", "=", trainer.id),
+                    ("status", "=", "completed"),
+                    ("date", ">=", first_day.date()),
+                    ("date", "<=", today.date()),
+                ])
+                trainer.current_month_revenue = sum(sessions.mapped("revenue"))
+            else:
+                trainer.current_month_revenue = 0.0
+
+
+    @api.constrains("is_trainer", "center_id")
+    def _check_trainer_center(self):
+        """Validate that trainer must be assigned to exactly one center."""
+        for employee in self:
+            if employee.is_trainer and not employee.center_id:
+                raise ValidationError(
+                    f"Trainer {employee.name} must be assigned to a Tennis Center."
+                )
+
+    @api.constrains("center_id")
+    def _check_unique_center(self):
+        """Ensure trainer can only be in one center at a time."""
+        for employee in self:
+            if employee.is_trainer and employee.center_id:
+                # Check if there are other records with different centers
+                # (this constraint is automatically enforced by the single Many2one field)
+                pass
+
+
+class HrEmployeePublic(models.Model):
+    """Extend Employee Public for Tennis Trainers."""
+    
+    _inherit = "hr.employee.public"
+    
+    is_trainer = fields.Boolean(
+        string="Is Trainer",
+        default=False,
+        help="Check if this employee is a tennis trainer",
+    )
+    
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Tennis Center",
+        help="Tennis center where the trainer works",
+    )
+
+=== models/__init__.py ===
+# -*- coding: utf-8 -*-
+from . import tennis_training_type
+from . import tennis_center
+from . import tennis_court
+from . import tennis_center_working_hours
+from . import hr_employee
+from . import tennis_trainer_availability
+from . import res_partner
+from . import tennis_trainer_rate
+from . import tennis_center_price
+from . import court_schedule_status
+from . import court_schedule
+from . import tennis_training_session
+from . import tennis_trainer_revenue_report
+from . import tennis_center_revenue_report
+from . import tennis_training_session_time_slot
+from . import telegram_notification
+from . import telegram_helper
+from . import tennis_training_reminder  # ПОСЛЕ tennis_training_session
+
+=== models/res_partner.py ===
+# -*- coding: utf-8 -*-
+
+from odoo import api, fields, models, _
+from odoo.exceptions import ValidationError
+
+
+class ResPartner(models.Model):
+    """Extend Partner for Tennis Clients."""
+
+    _inherit = "res.partner"
+
+    # Tennis-specific flags
+    is_client = fields.Boolean(
+        string="Is Tennis Client",
+        default=False,
+        help="Check if this contact is a tennis club client",
+    )
+
+    client_type = fields.Selection(
+        selection=[
+            ("regular", "Regular"),
+            ("vip", "VIP"),
+            ("corporate", "Corporate"),
+            ("trial", "Trial"),
+        ],
+        string="Client Type",
+        default="regular",
+        help="Type of tennis club client",
+    )
+
+    # Currency and balance fields
+    currency_id = fields.Many2one(
+        "res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+        help="Currency used for the client's balance",
+    )
+
+    balance = fields.Monetary(
+        string="Balance",
+        currency_field="currency_id",
+        help="Client's account balance (automatically reduced after trainings).",
+    )
+
+    # STAGE1: Training session relationship (FIXED: client_id not partner_id!)
+    training_session_ids = fields.Many2many(
+        "tennis.training.session",
+        "training_session_client_rel",
+        "client_id",
+        "session_id",
+        string="Training Sessions"
+    )
+
+    # STAGE1: Training statistics (simple, no store)
+    training_count = fields.Integer(
+        string="Total Trainings",
+        compute="_compute_training_counts",
+        help="Number of training sessions for this client",
+    )
+    completed_training_count = fields.Integer(
+        string="Completed Trainings",
+        compute="_compute_training_counts",
+        help="Number of completed training sessions for this client",
+    )
+
+    # STAGE1: Telegram fields
+    telegram_chat_id = fields.Char(
+        string="Telegram Chat ID",
+        help="Telegram chat ID for notifications"
+    )
+
+    telegram_username = fields.Char(
+        string="Telegram Username"
+    )
+
+    receive_telegram_notifications = fields.Boolean(
+        string="Receive Telegram Notifications",
+        default=True
+    )
+
+    notification_hours_before = fields.Integer(
+        string="Notification Hours Before Training",
+        default=2,
+        help="Hours before training to send reminder notification"
+    )
+
+    client_notes = fields.Text(
+        string="Client Notes",
+        help="Additional information about the tennis client",
+    )
+
+    def _compute_training_counts(self):
+        """Compute training statistics."""
+        for partner in self:
+            # Total trainings - all sessions (any status)
+            partner.training_count = len(partner.training_session_ids)
+            
+            # Completed trainings - only completed sessions
+            completed_count = self.env['tennis.training.session'].search_count([
+                ('client_ids', 'in', partner.id),
+                ('status', '=', 'completed')
+            ])
+            partner.completed_training_count = completed_count
+
+    @api.constrains("balance")
+    def _check_balance_negative(self):
+        """Prevent negative balance."""
+        for partner in self:
+            if partner.balance < 0:
+                raise ValidationError(
+                    _("Balance cannot be negative!\nCurrent balance: %.2f") % partner.balance
+                )
+
+    @api.constrains("notification_hours_before")
+    def _check_notification_hours(self):
+        """Validate notification hours."""
+        for partner in self:
+            if partner.notification_hours_before < 0:
+                raise ValidationError(_("Notification hours cannot be negative!"))
+            if partner.notification_hours_before > 72:
+                raise ValidationError(_("Notification hours cannot exceed 72 hours!"))
+
+    def action_add_balance(self):
+        """Open wizard to add balance."""
+        return {
+            "name": _("Add Balance"),
+            "type": "ir.actions.act_window",
+            "res_model": "client.balance.wizard",
+            "view_mode": "form",
+            "target": "new",
+            "context": {
+                "default_partner_id": self.id,
+                "default_operation": "add"
+            }
+        }
+
+    def action_view_training_sessions(self):
+        """View all training sessions for this client."""
+        self.ensure_one()
+        return {
+            "name": _("Training Sessions"),
+            "type": "ir.actions.act_window",
+            "res_model": "tennis.training.session",
+            "view_mode": "tree,form,calendar",
+            "domain": [("client_ids", "in", self.id)],
+        }
+
+    def check_balance_sufficient(self, amount):
+        """Check if client has sufficient balance."""
+        self.ensure_one()
+        return self.balance >= amount
+
+    def write(self, vals):
+        """Override write to track balance changes."""
+        result = super(ResPartner, self).write(vals)
+
+        # TEMPORARY: Disable message_post to avoid email errors
+        # if "balance" in vals:
+        #     for partner in self:
+        #         partner.message_post(
+        #             body=_("Balance updated to %.2f by %s") % (
+        #                 partner.balance,
+        #                 self.env.user.name
+        #             ),
+        #             subtype_xmlid="mail.mt_note"
+        #         )
+
+        return result
+
+    def send_telegram_notification(self, message_type, message_text, session_id=None):
+        """Send Telegram notification to client.
+        
+        Args:
+            message_type: Type of notification
+            message_text: Message content
+            session_id: Optional session ID
+            
+        Returns:
+            bool: Success status
+        """
+        self.ensure_one()
+        
+        
+        if not self.telegram_chat_id:
+            return False
+        
+        if not self.receive_telegram_notifications:
+            return False
+        
+        # Create notification log
+        notification = self.env["telegram.notification"].create_notification(
+            partner_id=self.id,
+            message_type=message_type,
+            message_text=message_text,
+            session_id=session_id
+        )
+        
+        if not notification:
+            return False
+        
+        # TEMPORARY FIX: Skip write if notification is bool
+        if isinstance(notification, bool):
+            return True
+        
+        # Send via Telegram API
+        from .telegram_helper import TelegramHelper
+        helper = TelegramHelper(self.env)
+        result = helper.send_message(self.telegram_chat_id, message_text)
+        
+        # Update notification record
+        notification.write({
+            "sent_successfully": result["success"],
+            "error_message": result.get("error", False),
+        })
+        
+        return result["success"]
+    
+    def action_send_test_notification(self):
+        """Send test notification (for testing purposes)."""
+        self.ensure_one()
+        
+        if not self.telegram_chat_id:
+            raise ValidationError(_("This client has no Telegram chat ID configured!"))
+        
+        message = f"""
+<b>🎾 Test Notification</b>
+
+Hello {self.name}!
+
+This is a test message from Tennis Club Management System.
+
+Your Telegram integration is working correctly! ✅
+"""
+        
+        success = self.send_telegram_notification(
+            message_type="balance_updated",
+            message_text=message
+        )
+        
+        if success:
+            return {
+                "type": "ir.actions.client",
+                "tag": "display_notification",
+                "params": {
+                    "title": _("Success"),
+                    "message": _("Test notification sent successfully!"),
+                    "type": "success",
+                    "sticky": False,
+                }
+            }
+        else:
+            return {
+                "type": "ir.actions.client",
+                "tag": "display_notification",
+                "params": {
+                    "title": _("Error"),
+                    "message": _("Failed to send notification. Check configuration."),
+                    "type": "danger",
+                    "sticky": False,
+                }
+            }
+
+=== models/telegram_helper.py ===
+# -*- coding: utf-8 -*-
+"""Telegram Helper - utilities for sending messages."""
+
+import requests
+import logging
+from odoo import _
+
+_logger = logging.getLogger(__name__)
+
+
+class TelegramHelper:
+    """Helper class for Telegram API interactions."""
+    
+    def __init__(self, env):
+        """Initialize with Odoo environment."""
+        self.env = env
+        # Get bot token from system parameters
+        self.bot_token = env["ir.config_parameter"].sudo().get_param("tennis_club.telegram_bot_token")
+        self.base_url = f"https://api.telegram.org/bot{self.bot_token}"
+    
+    def send_message(self, chat_id, text, parse_mode="HTML"):
+        """Send message to Telegram chat.
+        
+        Args:
+            chat_id: Telegram chat ID
+            text: Message text
+            parse_mode: Format (HTML or Markdown)
+            
+        Returns:
+            dict with success status and message_id or error
+        """
+        if not self.bot_token:
+            _logger.error("Telegram bot token not configured!")
+            return {"success": False, "error": "Bot token not configured"}
+        
+        url = f"{self.base_url}/sendMessage"
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": parse_mode,
+        }
+        
+        try:
+            response = requests.post(url, json=payload, timeout=10)
+            result = response.json()
+            
+            if result.get("ok"):
+                return {
+                    "success": True,
+                    "message_id": result["result"]["message_id"]
+                }
+            else:
+                _logger.error(f"Telegram API error: {result}")
+                return {
+                    "success": False,
+                    "error": result.get("description", "Unknown error")
+                }
+        except Exception as e:
+            _logger.error(f"Exception sending Telegram message: {e}")
+            return {"success": False, "error": str(e)}
+    
+    def format_booking_confirmation(self, session):
+        """Format booking confirmation message."""
+        message = f"""
+<b>🎾 Training Booking Confirmed</b>
+
+<b>Session:</b> {session.name}
+<b>Date:</b> {session.date.strftime('%d.%m.%Y')}
+<b>Time:</b> {session.time_from.strftime('%H:%M')} - {session.time_to.strftime('%H:%M')}
+<b>Duration:</b> {int(session.duration) if session.duration == int(session.duration) else session.duration} hour{'s' if session.duration != 1 else ''}
+
+<b>Location:</b>
+📍 {session.center_id.name}
+🎾 Court: {session.court_id.name}
+
+<b>Trainer:</b> {session.trainer_id.name}
+<b>Training Type:</b> {session.training_type_id.name}
+
+See you on the court! 💪
+"""
+        return message.strip()
+    
+    def format_reminder(self, session, hours_before):
+        """Format reminder message."""
+        message = f"""
+<b>⏰ Training Reminder</b>
+
+Your training starts in <b>{hours_before} hours</b>!
+
+<b>Date:</b> {session.date.strftime('%d.%m.%Y')}
+<b>Time:</b> {session.time_from.strftime('%H:%M')} - {session.time_to.strftime('%H:%M')}
+
+<b>Location:</b> {session.center_id.name}, Court {session.court_id.name}
+<b>Trainer:</b> {session.trainer_id.name}
+
+Don't forget your racket! 🎾
+"""
+        return message.strip()
+    
+    def format_balance_info(self, partner):
+        """Format balance information message."""
+        message = f"""
+<b>💰 Your Balance</b>
+
+<b>Current Balance:</b> ${partner.balance:.2f}
+
+<b>Training Statistics:</b>
+- Total trainings: {partner.training_count}
+- Completed: {partner.completed_training_count}
+
+Contact your manager to top up your balance.
+"""
+        return message.strip()
+    
+    def format_upcoming_trainings(self, sessions):
+        """Format upcoming trainings list."""
+        if not sessions:
+            return "<b>📅 Upcoming Trainings</b>\n\nYou have no upcoming trainings scheduled."
+        
+        message = "<b>📅 Your Upcoming Trainings</b>\n\n"
+        
+        for session in sessions:
+            message += f"""
+<b>{session.date.strftime('%d.%m.%Y')} {session.time_from.strftime('%H:%M')}</b>
+📍 {session.center_id.name}, Court {session.court_id.name}
+👨‍🏫 {session.trainer_id.name}
+⏱ {session.duration}h - {session.training_type_id.name}
+
+"""
+        
+        return message.strip()
+    
+    def format_cancellation(self, session):
+        """Format cancellation message."""
+        message = f"""
+<b>❌ Training Cancelled</b>
+
+The following training has been cancelled:
+
+<b>Date:</b> {session.date.strftime('%d.%m.%Y')}
+<b>Time:</b> {session.time_from.strftime('%H:%M')} - {session.time_to.strftime('%H:%M')}
+<b>Location:</b> {session.center_id.name}, Court {session.court_id.name}
+
+Your balance has been refunded if payment was made.
+"""
+        return message.strip()
+
+=== models/telegram_notification.py ===
+# -*- coding: utf-8 -*-
+"""Telegram Notification Model."""
+from odoo import api, fields, models
+import logging
+
+_logger = logging.getLogger(__name__)
+
+
+class TelegramNotification(models.Model):
+    """Log of Telegram notifications sent to clients."""
+    
+    _name = "telegram.notification"
+    _description = "Telegram Notification Log"
+    _order = "create_date desc"
+    _rec_name = "message_type"
+    
+    partner_id = fields.Many2one(
+        "res.partner",
+        string="Client",
+        required=True,
+        ondelete="cascade",
+        index=True,
+        help="Client who received the notification"
+    )
+    
+    telegram_chat_id = fields.Char(
+        string="Telegram Chat ID",
+        required=True,
+        help="Telegram chat ID where message was sent"
+    )
+    
+    message_type = fields.Selection(
+        selection=[
+            ("booking_confirmation", "Booking Confirmation"),
+            ("booking_reminder", "Training Reminder"),
+            ("booking_cancelled", "Booking Cancelled"),
+            ("balance_low", "Low Balance Warning"),
+            ("balance_updated", "Balance Updated"),
+        ],
+        string="Message Type",
+        required=True,
+        help="Type of notification sent"
+    )
+    
+    session_id = fields.Many2one(
+        "tennis.training.session",
+        string="Training Session",
+        ondelete="set null",
+        help="Related training session (if applicable)"
+    )
+    
+    message_text = fields.Text(
+        string="Message Content",
+        required=True,
+        help="Content of the notification message"
+    )
+    
+    sent_successfully = fields.Boolean(
+        string="Sent Successfully",
+        default=False,
+        help="Whether the message was successfully delivered"
+    )
+    
+    error_message = fields.Text(
+        string="Error Message",
+        help="Error details if sending failed"
+    )
+    
+    sent_date = fields.Datetime(
+        string="Sent Date",
+        default=fields.Datetime.now,
+        required=True,
+        help="When the notification was sent"
+    )
+    
+    @api.model
+    def create_notification(self, partner_id, message_type, message_text, session_id=None):
+        """Create notification record.
+        
+        Args:
+            partner_id: res.partner ID
+            message_type: Type of notification
+            message_text: Message content
+            session_id: Optional training session ID
+            
+        Returns:
+            telegram.notification record
+        """
+        partner = self.env["res.partner"].browse(partner_id)
+        
+        if not partner.telegram_chat_id:
+            _logger.warning(f"Partner {partner.name} has no telegram_chat_id")
+            return False
+        
+        vals = {
+            "partner_id": partner_id,
+            "telegram_chat_id": partner.telegram_chat_id,
+            "message_type": message_type,
+            "message_text": message_text,
+            "session_id": session_id,
+            "sent_successfully": False,
+        }
+        return self.create(vals)
+
+=== models/tennis_center_price.py ===
+# -*- coding: utf-8 -*-
+
+from odoo import fields, models
+
+
+class TennisCenterPrice(models.Model):
+    """Training prices by center and type."""
+    
+    _name = "tennis.center.price"
+    _description = "Center Price by Training Type"
+
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Center",
+        required=True,
+        ondelete="cascade"
+    )
+    
+    training_type_id = fields.Many2one(
+        comodel_name="tennis.training.type",
+        string="Training Type",
+        required=True,
+        ondelete="cascade"
+    )
+    
+    price = fields.Monetary(
+        string="Price",
+        currency_field="currency_id",
+        required=True,
+        help="Price per hour for this training type"
+    )
+    
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id
+    )
+    
+    _sql_constraints = [
+        (
+            "unique_center_training_type",
+            "UNIQUE(center_id, training_type_id)",
+            "Price for this training type already exists in this center!"
+        ),
+    ]
+
+=== models/tennis_center.py ===
+# -*- coding: utf-8 -*-
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+import re
+
+
+class TennisCenter(models.Model):
+    """Tennis Center Model."""
+    
+    _name = "tennis.center"
+    _description = "Tennis Center"
+    _order = "name"
+
+    name = fields.Char(
+        string="Name",
+        required=True,
+        help="Tennis center name"
+    )
+    
+    code = fields.Char(
+        string="Code",
+        required=True,
+        help="Unique center code"
+    )
+    
+    manager_id = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Manager",
+        help="Center manager"
+    )
+    
+    phone = fields.Char(
+        string="Phone",
+        help="Contact phone number"
+    )
+    
+    email = fields.Char(
+        string="Email",
+        help="Contact email"
+    )
+    
+    address = fields.Text(
+        string="Address",
+        help="Physical address"
+    )
+    
+    notes = fields.Text(
+        string="Notes",
+        help="Additional notes"
+    )
+    
+    working_hours_ids = fields.One2many(
+        comodel_name="tennis.center.working.hours",
+        inverse_name="center_id",
+        string="Working Hours",
+        help="Center working hours by day of week"
+    )
+    
+    court_ids = fields.One2many(
+        comodel_name="tennis.court",
+        inverse_name="center_id",
+        string="Courts",
+        help="Tennis courts in this center"
+    )
+    
+    courts_count = fields.Integer(
+        string="Courts Count",
+        compute="_compute_courts_count",
+        store=True,
+        help="Number of courts"
+    )
+    
+    price_ids = fields.One2many(
+        comodel_name="tennis.center.price",
+        inverse_name="center_id",
+        string="Prices",
+        help="Training prices in this center"
+    )
+    
+    _sql_constraints = [
+        ("code_unique", "UNIQUE(code)", "Center code must be unique!"),
+    ]
+    
+
+    # Revenue tracking
+    currency_id = fields.Many2one(
+        "res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+    )
+
+    total_revenue = fields.Monetary(
+        string="Total Revenue",
+        compute="_compute_revenues",
+        currency_field="currency_id",
+        help="Total revenue from all trainers in this center",
+    )
+
+    current_month_revenue = fields.Monetary(
+        string="Revenue (Current Month)",
+        compute="_compute_revenues",
+        currency_field="currency_id",
+        help="Revenue for current month from all trainers",
+    )
+
+    @api.depends("court_ids")
+    def _compute_courts_count(self):
+        """Compute number of courts."""
+        for center in self:
+            center.courts_count = len(center.court_ids)
+    
+    @api.constrains("email")
+    def _check_email(self):
+        """Validate email format."""
+        for center in self:
+            if center.email:
+                email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+                if not re.match(email_pattern, center.email):
+                    raise ValidationError(f"Invalid email format: {center.email}")
+    
+    def _compute_revenues(self):
+        """Compute total and current month revenue for center."""
+        from datetime import datetime
+        for center in self:
+            # Get all trainers in this center
+            trainers = self.env["hr.employee"].search([
+                ("is_trainer", "=", True),
+                ("center_id", "=", center.id),
+            ])
+            
+            # Total revenue
+            total = 0.0
+            current_month = 0.0
+            
+            # First day of current month
+            today = datetime.today()
+            first_day = today.replace(day=1)
+            
+            for trainer in trainers:
+                # All completed sessions
+                all_sessions = self.env["tennis.training.session"].search([
+                    ("trainer_id", "=", trainer.id),
+                    ("status", "=", "completed"),
+                ])
+                total += sum(all_sessions.mapped("revenue"))
+                
+                # Current month sessions
+                month_sessions = self.env["tennis.training.session"].search([
+                    ("trainer_id", "=", trainer.id),
+                    ("status", "=", "completed"),
+                    ("date", ">=", first_day.date()),
+                    ("date", "<=", today.date()),
+                ])
+                current_month += sum(month_sessions.mapped("revenue"))
+            
+            center.total_revenue = total
+            center.current_month_revenue = current_month
+
+        """Validate phone format."""
+        for center in self:
+            if center.phone:
+                phone_pattern = r'^\+?[0-9]{10,15}$'
+                if not re.match(phone_pattern, center.phone):
+                    raise ValidationError(
+                        f"Invalid phone format: {center.phone}. Must be 10-15 digits."
+                    )
+
+=== models/tennis_center_revenue_report.py ===
+# -*- coding: utf-8 -*-
+"""Tennis Center Revenue Report."""
+
+from odoo import api, fields, models
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+
+
+class TennisCenterRevenueReport(models.Model):
+    """Center Revenue Report Model."""
+    
+    _name = "tennis.center.revenue.report"
+    _description = "Tennis Center Revenue Report"
+    
+    date_from = fields.Date(
+        string="Date From",
+        required=True,
+        default=lambda self: fields.Date.today().replace(day=1),
+        help="Start date for revenue calculation (default: first day of current month)",
+    )
+    
+    date_to = fields.Date(
+        string="Date To",
+        required=True,
+        default=fields.Date.today,
+        help="End date for revenue calculation (default: today)",
+    )
+    
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Center",
+        help="Leave empty to show all centers",
+    )
+    
+    line_ids = fields.One2many(
+        comodel_name="tennis.center.revenue.report.line",
+        inverse_name="report_id",
+        string="Revenue Lines",
+    )
+
+    total_sessions = fields.Integer(
+        string="Total Sessions",
+        compute="_compute_totals",
+    )
+
+    total_cost = fields.Monetary(
+        string="Total Cost",
+        currency_field="currency_id",
+        compute="_compute_totals",
+    )
+
+    total_revenue_sum = fields.Monetary(
+        string="Total Revenue",
+        currency_field="currency_id",
+        compute="_compute_totals",
+    )
+    
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+    )
+
+    def _compute_totals(self):
+        """Compute totals from lines."""
+        for record in self:
+            record.total_sessions = sum(record.line_ids.mapped("session_count"))
+            record.total_cost = sum(record.line_ids.mapped("total_center_cost"))
+            record.total_revenue_sum = sum(record.line_ids.mapped("total_revenue"))
+
+    def action_generate_report(self):
+        """Generate revenue report for selected period."""
+        self.ensure_one()
+        
+        # Clear existing lines
+        self.line_ids.unlink()
+        
+        # Build domain
+        domain = [
+            ("date", ">=", self.date_from),
+            ("date", "<=", self.date_to),
+            ("status", "=", "completed"),
+        ]
+        
+        if self.center_id:
+            domain.append(("center_id", "=", self.center_id.id))
+        
+        # Get sessions
+        sessions = self.env["tennis.training.session"].search(domain)
+        
+        # Group by center
+        center_data = {}
+        for session in sessions:
+            center = session.center_id
+            if center not in center_data:
+                center_data[center] = {
+                    "sessions": 0,
+                    "total_revenue": 0.0,
+                    "total_center_cost": 0.0,
+                }
+            
+            center_data[center]["sessions"] += 1
+            center_data[center]["total_revenue"] += session.revenue
+            center_data[center]["total_center_cost"] += session.price
+        
+        # Create report lines
+        for center, data in center_data.items():
+            self.env["tennis.center.revenue.report.line"].create({
+                "report_id": self.id,
+                "center_id": center.id,
+                "session_count": data["sessions"],
+                "total_revenue": data["total_revenue"],
+                "total_center_cost": data["total_center_cost"],
+            })
+        
+        # Return action to stay on the same form (NOT close it!)
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "tennis.center.revenue.report",
+            "view_mode": "form",
+            "res_id": self.id,
+            "target": "current",
+        }
+
+
+class TennisCenterRevenueReportLine(models.Model):
+    """Line for Center Revenue Report."""
+    
+    _name = "tennis.center.revenue.report.line"
+    _description = "Tennis Center Revenue Report Line"
+    _order = "total_revenue desc"
+    
+    report_id = fields.Many2one(
+        comodel_name="tennis.center.revenue.report",
+        string="Report",
+        required=True,
+        ondelete="cascade",
+    )
+    
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Center",
+        required=True,
+    )
+    
+    session_count = fields.Integer(
+        string="Sessions",
+        help="Number of completed sessions",
+    )
+    
+    total_revenue = fields.Monetary(
+        string="Total Revenue (Profit)",
+        currency_field="currency_id",
+        help="Total profit from all sessions",
+    )
+    
+    total_center_cost = fields.Monetary(
+        string="Total Center Cost",
+        currency_field="currency_id",
+        help="Total income from clients",
+    )
+    
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        related="report_id.currency_id",
+        store=True,
+    )
+
+=== models/tennis_center_working_hours.py ===
+# -*- coding: utf-8 -*-
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+
+
+class TennisCenterWorkingHours(models.Model):
+    """Tennis Center Working Hours model."""
+    
+    _name = "tennis.center.working.hours"
+    _description = "Tennis Center Working Hours"
+    _order = "center_id, day_of_week, time_from"
+
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Center",
+        required=True,
+        ondelete="cascade",
+        help="Tennis center"
+    )
+    
+    day_of_week = fields.Selection(
+        selection=[
+            ("0", "Monday"),
+            ("1", "Tuesday"),
+            ("2", "Wednesday"),
+            ("3", "Thursday"),
+            ("4", "Friday"),
+            ("5", "Saturday"),
+            ("6", "Sunday"),
+        ],
+        string="Day of Week",
+        required=True,
+        help="Day of the week"
+    )
+    
+    time_from = fields.Float(
+        string="From",
+        required=True,
+        help="Opening time in 24h format (e.g., 9.0 for 09:00, 9.5 for 09:30)"
+    )
+    
+    time_to = fields.Float(
+        string="To",
+        required=True,
+        help="Closing time in 24h format (e.g., 21.0 for 21:00, 18.5 for 18:30)"
+    )
+    
+    is_closed = fields.Boolean(
+        string="Closed",
+        default=False,
+        help="Check if center is closed on this day"
+    )
+    
+    _sql_constraints = [
+        (
+            "check_hours_order",
+            "CHECK(time_to > time_from)",
+            "Closing time must be after opening time!"
+        ),
+        (
+            "unique_center_day",
+            "UNIQUE(center_id, day_of_week)",
+            "Working hours already defined for this day!"
+        ),
+    ]
+    
+    @api.constrains("time_from", "time_to")
+    def _check_hours_range(self):
+        """Validate hours are within 0-24 range."""
+        for record in self:
+            if not (0 <= record.time_from < 24):
+                raise ValidationError("Opening time must be between 0 and 24!")
+            if not (0 < record.time_to <= 24):
+                raise ValidationError("Closing time must be between 0 and 24!")
+            if record.time_from >= record.time_to:
+                raise ValidationError("Closing time must be after opening time!")
+
+=== models/tennis_court.py ===
+# -*- coding: utf-8 -*-
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+
+
+class TennisCourt(models.Model):
+    """Tennis Court model."""
+    
+    _name = "tennis.court"
+    _description = "Tennis Court"
+    _order = "center_id, name"
+
+    name = fields.Char(
+        string="Court Name",
+        required=True,
+        help="Court name or number"
+    )
+    
+    code = fields.Char(
+        string="Code",
+        required=True,
+        help="Unique code for the court"
+    )
+    
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Center",
+        required=True,
+        ondelete="cascade",
+        help="Tennis center where this court is located"
+    )
+    
+    surface_type = fields.Selection(
+        selection=[
+            ('hard', 'Hard Court'),
+            ('clay', 'Clay Court'),
+            ('grass', 'Grass Court'),
+            ('carpet', 'Carpet'),
+        ],
+        string="Surface Type",
+        default='hard',
+        required=True,
+        help="Type of court surface"
+    )
+    
+    court_type = fields.Selection(
+        selection=[
+            ('indoor', 'Indoor'),
+            ('outdoor', 'Outdoor'),
+        ],
+        string="Court Type",
+        default='outdoor',
+        required=True,
+        help="Indoor or outdoor court"
+    )
+    
+    has_lighting = fields.Boolean(
+        string="Has Lighting",
+        default=True,
+        help="Court has lighting for evening play"
+    )
+    
+    active = fields.Boolean(
+        string="Active",
+        default=True,
+        help="Court is active and available for booking"
+    )
+    
+    notes = fields.Text(
+        string="Notes",
+        help="Additional information about the court"
+    )
+    
+    _sql_constraints = [
+        ('code_unique', 'UNIQUE(code)', 'Court code must be unique!'),
+    ]
+    
+    @api.constrains('name', 'center_id')
+    def _check_name_center_unique(self):
+        """Ensure court name is unique within a center"""
+        for record in self:
+            existing = self.search([
+                ('name', '=', record.name),
+                ('center_id', '=', record.center_id.id),
+                ('id', '!=', record.id)
+            ])
+            if existing:
+                raise ValidationError(
+                    f'Court "{record.name}" already exists in {record.center_id.name}!'
+                )
+
+=== models/tennis_trainer_availability.py ===
+# -*- coding: utf-8 -*-
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+
+
+class TennisTrainerAvailability(models.Model):
+    """Trainer Availability Schedule."""
+    
+    _name = "tennis.trainer.availability"
+    _description = "Trainer Availability"
+    _order = "trainer_id, date, time_from"
+
+    trainer_id = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Trainer",
+        required=True,
+        domain="[('is_trainer', '=', True)]",
+        ondelete="cascade",
+        help="Tennis trainer"
+    )
+    
+    date = fields.Date(
+        string="Date",
+        required=True,
+        help="Date of availability"
+    )
+    
+    time_from = fields.Datetime(
+        string="From",
+        required=True,
+        help="Start time"
+    )
+    
+    time_to = fields.Datetime(
+        string="To",
+        required=True,
+        help="End time"
+    )
+    
+    is_available = fields.Boolean(
+        string="Available",
+        default=True,
+        help="Trainer is available during this time"
+    )
+    
+    notes = fields.Text(
+        string="Notes",
+        help="Additional notes about availability"
+    )
+    
+    _sql_constraints = [
+        (
+            "check_time_order",
+            "CHECK(time_to > time_from)",
+            "End time must be after start time!"
+        ),
+    ]
+    
+    @api.constrains("time_from", "time_to", "date")
+    def _check_times(self):
+        """Validate that times are on the same date."""
+        for record in self:
+            if record.time_from.date() != record.date:
+                raise ValidationError("Start time must be on the selected date!")
+            if record.time_to.date() != record.date:
+                raise ValidationError("End time must be on the selected date!")
+            if record.time_from >= record.time_to:
+                raise ValidationError("End time must be after start time!")
+    
+    @api.constrains("trainer_id", "date", "time_from", "time_to")
+    def _check_overlap(self):
+        """Check for overlapping availability records."""
+        for record in self:
+            overlapping = self.search([
+                ("trainer_id", "=", record.trainer_id.id),
+                ("date", "=", record.date),
+                ("id", "!=", record.id),
+                "|",
+                "&", ("time_from", "<=", record.time_from), ("time_to", ">", record.time_from),
+                "&", ("time_from", "<", record.time_to), ("time_to", ">=", record.time_to),
+            ])
+            if overlapping:
+                raise ValidationError(
+                    f"Overlapping availability found for {record.trainer_id.name} on {record.date}!"
+                )
+    
+    def name_get(self):
+        """Custom display name."""
+        result = []
+        for record in self:
+            status = "Available" if record.is_available else "Unavailable"
+            name = f"{record.trainer_id.name} - {record.date} ({record.time_from.strftime('%H:%M')}-{record.time_to.strftime('%H:%M')}): {status}"
+            result.append((record.id, name))
+        return result
+
+=== models/tennis_trainer_rate.py ===
+# -*- coding: utf-8 -*-
+
+from odoo import fields, models
+
+
+class TennisTrainerRate(models.Model):
+    """Trainer hourly rates by training type."""
+    
+    _name = "tennis.trainer.rate"
+    _description = "Trainer Rate by Training Type"
+
+    trainer_id = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Trainer",
+        required=True,
+        domain="[('is_trainer', '=', True)]",
+        ondelete="cascade"
+    )
+    
+    training_type_id = fields.Many2one(
+        comodel_name="tennis.training.type",
+        string="Training Type",
+        required=True,
+        ondelete="cascade"
+    )
+    
+    hourly_rate = fields.Monetary(
+        string="Hourly Rate",
+        currency_field="currency_id",
+        required=True,
+        help="Trainer's rate per hour for this training type"
+    )
+    
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id
+    )
+    
+    _sql_constraints = [
+        (
+            "unique_trainer_training_type",
+            "UNIQUE(trainer_id, training_type_id)",
+            "Rate for this training type already exists for this trainer!"
+        ),
+    ]
+
+=== models/tennis_trainer_revenue_report.py ===
+# -*- coding: utf-8 -*-
+"""Tennis Trainer Revenue Report."""
+
+from odoo import api, fields, models
+from odoo.exceptions import UserError
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
+
+
+class TennisTrainerRevenueReport(models.Model):
+    """Trainer Revenue Report Model."""
+    
+    _name = "tennis.trainer.revenue.report"
+    _description = "Tennis Trainer Revenue Report"
+    
+    @api.model
+    def _get_trainer_domain(self):
+        """Get domain for trainer selection based on user role."""
+        user = self.env.user
+        
+        # Director sees all trainers
+        if user.has_group("tennis_club.group_tennis_director"):
+            return [("is_trainer", "=", True)]
+        
+        # Manager sees only trainers from their centers
+        if user.has_group("tennis_club.group_tennis_manager"):
+            employee = self.env["hr.employee"].search([("user_id", "=", user.id)], limit=1)
+            if employee:
+                centers = self.env["tennis.center"].search([("manager_id", "=", employee.id)])
+                return [("is_trainer", "=", True), ("center_id", "in", centers.ids)]
+        
+        # Default: no trainers
+        return [("id", "=", False)]
+    
+    date_from = fields.Date(
+        string="Date From",
+        required=True,
+        default=lambda self: fields.Date.today().replace(day=1),
+        help="Start date for revenue calculation (default: first day of current month)",
+    )
+    
+    date_to = fields.Date(
+        string="Date To",
+        required=True,
+        default=fields.Date.today,
+        help="End date for revenue calculation (default: today)",
+    )
+    
+    trainer_id = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Trainer",
+        domain=lambda self: self._get_trainer_domain(),
+        help="Leave empty to show all trainers",
+    )
+    
+    line_ids = fields.One2many(
+        comodel_name="tennis.trainer.revenue.report.line",
+        inverse_name="report_id",
+        string="Revenue Lines",
+    )
+    
+    total_sessions = fields.Integer(
+        string="Total Sessions",
+        compute="_compute_totals",
+    )
+    
+    total_cost = fields.Monetary(
+        string="Total Cost",
+        currency_field="currency_id",
+        compute="_compute_totals",
+    )
+    
+    total_revenue_sum = fields.Monetary(
+        string="Total Revenue",
+        currency_field="currency_id",
+        compute="_compute_totals",
+    )
+    
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+    )
+    
+    def _compute_totals(self):
+        """Compute totals from lines."""
+        for record in self:
+            record.total_sessions = sum(record.line_ids.mapped("session_count"))
+            record.total_cost = sum(record.line_ids.mapped("total_trainer_cost"))
+            record.total_revenue_sum = sum(record.line_ids.mapped("total_revenue"))
+    
+    def action_print_report(self):
+        """Print revenue report as PDF."""
+        self.ensure_one()
+        report = self.env["ir.actions.report"].search([
+            ("model", "=", "tennis.trainer.revenue.report"),
+            ("report_type", "=", "qweb-pdf")
+        ], limit=1)
+        if not report:
+            raise UserError("Report not found!")
+        return report.report_action(self)
+    
+    def action_generate_report(self):
+        """Generate revenue report for selected period."""
+        self.ensure_one()
+        
+        # Clear existing lines
+        self.line_ids.unlink()
+        
+        # Build domain
+        domain = [
+            ("date", ">=", self.date_from),
+            ("date", "<=", self.date_to),
+            ("status", "=", "completed"),
+        ]
+        
+        # Filter by manager's center
+        user = self.env.user
+        if user.has_group("tennis_club.group_tennis_manager"):
+            employee = self.env["hr.employee"].search([("user_id", "=", user.id)], limit=1)
+            if employee and employee.center_id:
+                domain.append(("center_id", "=", employee.center_id.id))
+        
+        
+        if self.trainer_id:
+            domain.append(("trainer_id", "=", self.trainer_id.id))
+        
+        # Get sessions
+        sessions = self.env["tennis.training.session"].search(domain)
+        
+        # Group by trainer
+        trainer_data = {}
+        for session in sessions:
+            trainer = session.trainer_id
+            if trainer not in trainer_data:
+                trainer_data[trainer] = {
+                    "sessions": 0,
+                    "total_revenue": 0.0,
+                    "total_trainer_cost": 0.0,
+                }
+            
+            trainer_data[trainer]["sessions"] += 1
+            trainer_data[trainer]["total_revenue"] += session.revenue
+            trainer_data[trainer]["total_trainer_cost"] += session.trainer_cost
+        
+        # Create report lines
+        for trainer, data in trainer_data.items():
+            self.env["tennis.trainer.revenue.report.line"].create({
+                "report_id": self.id,
+                "trainer_id": trainer.id,
+                "session_count": data["sessions"],
+                "total_revenue": data["total_revenue"],
+                "total_trainer_cost": data["total_trainer_cost"],
+            })
+        
+        # Return action to stay on the same form (NOT close it!)
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "tennis.trainer.revenue.report",
+            "view_mode": "form",
+            "res_id": self.id,
+            "target": "current",
+        }
+
+
+class TennisTrainerRevenueReportLine(models.Model):
+    """Line for Trainer Revenue Report."""
+    
+    _name = "tennis.trainer.revenue.report.line"
+    _description = "Tennis Trainer Revenue Report Line"
+    _order = "total_revenue desc"
+    
+    report_id = fields.Many2one(
+        comodel_name="tennis.trainer.revenue.report",
+        string="Report",
+        required=True,
+        ondelete="cascade",
+    )
+    
+    trainer_id = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Trainer",
+        domain="[('is_trainer', '=', True)]",
+        required=True,
+    )
+    
+    session_count = fields.Integer(
+        string="Sessions",
+        help="Number of completed sessions",
+    )
+    
+    total_trainer_cost = fields.Monetary(
+        string="Total Trainer Cost",
+        currency_field="currency_id",
+        help="Total amount paid to trainer",
+    )
+    
+    total_revenue = fields.Monetary(
+        string="Total Revenue (Profit)",
+        currency_field="currency_id",
+        help="Total profit from trainer's sessions",
+    )
+    
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id,
+        required=True,
+    )
+
+=== models/tennis_training_reminder.py ===
+# -*- coding: utf-8 -*-
+from odoo import models, fields, api, _
+from datetime import datetime, timedelta
+import logging
+
+_logger = logging.getLogger(__name__)
+
+
+class TennisTrainingReminder(models.Model):
+    _name = 'tennis.training.reminder'
+    _description = 'Training Session Reminder'
+    _order = 'reminder_time desc'
+
+    session_id = fields.Many2one(
+        'tennis.training.session',
+        string='Training Session',
+        required=True,
+        ondelete='cascade',
+    )
+    
+    client_id = fields.Many2one(
+        'res.partner',
+        string='Client',
+        required=True,
+    )
+    
+    reminder_time = fields.Datetime(
+        string='Reminder Time',
+        required=True,
+        help='When to send the reminder',
+    )
+    
+    sent = fields.Boolean(
+        string='Sent',
+        default=False,
+    )
+    
+    sent_date = fields.Datetime(
+        string='Sent Date',
+        readonly=True,
+    )
+    
+    error_message = fields.Text(
+        string='Error Message',
+        readonly=True,
+    )
+
+    @api.model
+    def _cron_send_pending_reminders(self):
+        """Cron job method to send pending reminders"""
+        _logger.info("=== Starting reminder cron job ===")
+        
+        now = fields.Datetime.now()
+        pending_reminders = self.search([
+            ('sent', '=', False),
+            ('reminder_time', '<=', now),
+        ])
+        
+        _logger.info(f"Found {len(pending_reminders)} pending reminders")
+        
+        for reminder in pending_reminders:
+            try:
+                self._send_reminder(reminder)
+            except Exception as e:
+                _logger.error(f"Failed to send reminder {reminder.id}: {str(e)}")
+                reminder.write({'error_message': str(e)})
+        
+        _logger.info("=== Reminder cron job completed ===")
+    
+    def _send_reminder(self, reminder):
+        """Send a single reminder via Telegram"""
+        session = reminder.session_id
+        client = reminder.client_id
+        
+        if not client.telegram_chat_id:
+            _logger.warning(f"Client {client.name} has no telegram_chat_id")
+            return
+        
+        message = (
+            f"🔔 <b>Training Reminder!</b>\n\n"
+            f"📅 Date: {session.time_from.strftime('%d.%m.%Y')}\n"
+            f"⏰ Time: {session.time_from.strftime('%H:%M')} - "
+            f"{session.time_to.strftime('%H:%M')}\n"
+            f"🎾 Type: {session.training_type_id.name}\n"
+            f"👨‍🏫 Trainer: {session.trainer_id.name}\n"
+            f"🏢 Center: {session.center_id.name}\n"
+            f"🎯 Court: {session.court_id.name}\n\n"
+            f"{int(session.reminder_hours * 60)} minutes until training starts!\n"
+            f"Don't forget to prepare! 💪"
+        )
+        
+        success = client.send_telegram_notification(
+            message_type='booking_reminder',
+            message_text=message,
+            session_id=session.id
+        )
+        
+        if success:
+            reminder.write({
+                'sent': True,
+                'sent_date': fields.Datetime.now(),
+            })
+            _logger.info(f"Reminder sent to {client.name} for session {session.name}")
+        else:
+            raise Exception("Failed to send telegram notification")
+
+
+class TennisTrainingSession(models.Model):
+    _inherit = 'tennis.training.session'
+
+    reminder_ids = fields.One2many(
+        'tennis.training.reminder',
+        'session_id',
+        string='Reminders',
+    )
+    
+    reminder_hours = fields.Float(
+        string='Reminder Hours Before',
+        default=0.083,
+        help='Send reminder N hours before training starts',
+    )
+
+    def _create_reminders(self):
+        """Create reminder records for all clients"""
+        self.ensure_one()
+        
+        if self.status != 'confirmed':
+            return
+        
+        self.reminder_ids.unlink()
+        
+        reminder_time = self.time_from - timedelta(hours=self.reminder_hours)
+        
+        if reminder_time <= fields.Datetime.now():
+            _logger.info(f"Reminder time is in past for {self.name}")
+            return
+        
+        for client in self.client_ids:
+            if client.telegram_chat_id:
+                self.env['tennis.training.reminder'].sudo().create({
+                    'session_id': self.id,
+                    'client_id': client.id,
+                    'reminder_time': reminder_time,
+                })
+
+    def write(self, vals):
+        res = super().write(vals)
+        
+        if any(key in vals for key in ['time_from', 'client_ids', 'status', 'reminder_hours']):
+            for session in self:
+                if session.status == 'confirmed':
+                    session.sudo()._create_reminders()
+        
+        return res
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        sessions = super().create(vals_list)
+        
+        for session in sessions:
+            if session.status == 'confirmed':
+                session._create_reminders()
+        
+        return sessions
+
+=== models/tennis_training_session.py ===
+# -*- coding: utf-8 -*-
+
+from odoo.tools.translate import _
+from datetime import datetime, timedelta
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError, UserError, AccessError
+import logging
+
+_logger = logging.getLogger(__name__)
+
+
+class TennisTrainingSession(models.Model):
+    """Tennis Training Session."""
+    
+    _name = "tennis.training.session"
+    _inherit = ["mail.thread", "mail.activity.mixin"]
+    _description = "Tennis Training Session"
+    _order = "date desc, time_from desc"
+
+    name = fields.Char(
+        string="Reference",
+        required=True,
+        copy=False,
+        readonly=True,
+        default="New"
+    )
+    
+    center_id = fields.Many2one(
+        comodel_name="tennis.center",
+        string="Center",
+        required=True,
+        default=lambda self: self._default_center_id(),
+        domain=lambda self: self._domain_center_id(),
+        help="Tennis center"
+    )
+    
+    court_id = fields.Many2one(
+        comodel_name="tennis.court",
+        string="Court",
+        required=True,
+        domain="[('center_id', '=', center_id)]",
+        help="Tennis court"
+    )
+    
+    trainer_id = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Trainer",
+        required=True,
+        default=lambda self: self._default_trainer_id(),
+        domain=lambda self: self._domain_trainer_id(),
+        help="Trainer (must be from same center)"
+    )
+    
+    client_ids = fields.Many2many(
+        comodel_name="res.partner",
+        relation="training_session_client_rel",
+        column1="session_id",
+        column2="client_id",
+        string="Clients",
+        domain="[('is_client', '=', True)]",
+        help="Training clients"
+    )
+    
+    training_type_id = fields.Many2one(
+        comodel_name="tennis.training.type",
+        string="Training Type",
+        required=True,
+        help="Type of training"
+    )
+    
+    date = fields.Date(
+        string="Date",
+        required=True,
+        default=fields.Date.context_today,
+        help="Training date"
+    )
+    
+    time_from = fields.Datetime(
+        string="Start Time",
+        required=True,
+        help="Training start time"
+    )
+    
+    time_to = fields.Datetime(
+        string="End Time",
+        required=True,
+        help="Training end time"
+    )
+    
+    duration = fields.Float(
+        string="Duration (hours)",
+        compute="_compute_duration",
+        store=True,
+        help="Training duration in hours"
+    )
+    
+    price = fields.Monetary(
+        string="Price",
+        currency_field="currency_id",
+        compute="_compute_financial",
+        store=True,
+        help="Training price (charged to clients)"
+    )
+    
+    trainer_cost = fields.Monetary(
+        string="Trainer Cost",
+        currency_field="currency_id",
+        compute="_compute_financial",
+        store=True,
+        help="Cost paid to trainer"
+    )
+    
+    revenue = fields.Monetary(
+        string="Revenue (Profit)",
+        currency_field="currency_id",
+        compute="_compute_financial",
+        store=True,
+        help="Profit: price minus trainer cost"
+    )
+    
+    currency_id = fields.Many2one(
+        comodel_name="res.currency",
+        string="Currency",
+        default=lambda self: self.env.company.currency_id
+    )
+    
+    status = fields.Selection(
+        selection=[
+            ("draft", "Draft"),
+            ("pending_approval", "Pending Approval"),
+            ("confirmed", "Confirmed"),
+            ("completed", "Completed"),
+            ("cancelled", "Cancelled"),
+        ],
+        string="Status",
+        default="draft",
+        required=True,
+        tracking=True,
+        help="Training session status"
+    )
+    
+    payment_status = fields.Selection(
+        selection=[
+            ("unpaid", "Unpaid"),
+            ("partial", "Partially Paid"),
+            ("paid", "Paid"),
+        ],
+        string="Payment Status",
+        default="unpaid",
+        required=True,
+        help="Payment status"
+    )
+    
+    needs_approval = fields.Boolean(
+        string="Needs Approval",
+        default=False,
+        help="Session needs manager approval"
+    )
+    
+    approved_by = fields.Many2one(
+        comodel_name="hr.employee",
+        string="Approved By",
+        help="Manager who approved this session",
+        readonly=True
+    )
+    
+    approval_date = fields.Datetime(
+        string="Approval Date",
+        readonly=True,
+        help="Date when session was approved"
+    )
+    
+    created_by_trainer = fields.Boolean(
+        string="Created by Trainer",
+        default=False,
+        help="True if session was created by trainer (requires approval)"
+    )
+    
+    is_current_user_trainer = fields.Boolean(
+        string="Is Current User Trainer",
+        compute="_compute_is_current_user_trainer",
+        help="Check if current user is a trainer"
+    )
+    
+    notes = fields.Text(
+        string="Notes",
+        help="Additional notes"
+    )
+    
+    balance_deducted = fields.Boolean(
+        string="Balance Deducted",
+        default=False,
+        readonly=True,
+        help="Indicates if client balance has been deducted"
+    )
+    
+    is_recurring = fields.Boolean(
+        string="Recurring Session",
+        default=False,
+        help="Is this a recurring training session?"
+    )
+
+    recurrence_pattern = fields.Selection(
+        selection=[
+            ("daily", "Daily"),
+            ("weekly", "Weekly"),
+            ("monthly", "Monthly"),
+        ],
+        string="Recurrence Pattern",
+        help="How often should this session repeat?"
+    )
+
+    recurrence_interval = fields.Integer(
+        string="Repeat Every",
+        default=1,
+        help="Repeat every X days/weeks/months"
+    )
+
+    recurrence_days = fields.Selection(
+        selection=[
+            ("monday", "Monday"),
+            ("tuesday", "Tuesday"),
+            ("wednesday", "Wednesday"),
+            ("thursday", "Thursday"),
+            ("friday", "Friday"),
+            ("saturday", "Saturday"),
+            ("sunday", "Sunday"),
+        ],
+        string="Day of Week",
+        help="For weekly recurrence - which day?"
+    )
+
+    recurrence_end_date = fields.Date(
+        string="Recurrence End Date",
+        help="Until when should sessions be created?"
+    )
+
+    skip_weekends = fields.Boolean(
+        string="Skip Weekends",
+        default=True,
+        help="Skip Saturday and Sunday when generating recurring sessions"
+    )
+
+    time_slot_ids = fields.One2many(
+        "tennis.training.session.time.slot",
+        "session_id",
+        string="Time Slots",
+        help="Multiple time slots for recurring sessions"
+    )
+
+    parent_recurring_session_id = fields.Many2one(
+        "tennis.training.session",
+        string="Parent Recurring Session",
+        help="Reference to parent recurring session"
+    )
+
+    _sql_constraints = [
+        (
+            "check_time_order",
+            "CHECK(time_to > time_from)",
+            "End time must be after start time!"
+        ),
+    ]
+    
+    @api.model
+    def _default_center_id(self):
+        """Default center to trainer's center if current user is trainer."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer and current_employee.center_id:
+            return current_employee.center_id.id
+        
+        return False
+    
+    @api.model
+    def _default_trainer_id(self):
+        """Default trainer to current user if they are a trainer."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer:
+            return current_employee.id
+        
+        return False
+    
+    def _domain_center_id(self):
+        """Domain for center - trainers see only their center."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer and current_employee.center_id:
+            return [('id', '=', current_employee.center_id.id)]
+        
+        return []
+    
+    def _domain_trainer_id(self):
+        """Domain for trainer - trainers see only themselves."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer:
+            return [('id', '=', current_employee.id), ('is_trainer', '=', True)]
+        
+        return [('is_trainer', '=', True)]
+    
+    @api.depends_context('uid')
+    def _compute_is_current_user_trainer(self):
+        """Check if current user is a trainer."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        for session in self:
+            session.is_current_user_trainer = bool(current_employee and current_employee.is_trainer)
+    
+    @api.model
+    def create(self, vals):
+        """Generate sequence number and check if created by trainer."""
+        if vals.get("name", "New") == "New":
+            vals["name"] = self.env["ir.sequence"].next_by_code("tennis.training.session") or "New"
+        
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer:
+            vals["created_by_trainer"] = True
+            vals["needs_approval"] = True
+            vals["status"] = "pending_approval"
+            if "trainer_id" not in vals:
+                vals["trainer_id"] = current_employee.id
+        
+        return super().create(vals)
+    
+    def write(self, vals):
+        """Check if modifications by trainer need approval."""
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        important_fields = ["date", "time_from", "time_to", "court_id", "client_ids", "training_type_id"]
+        
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer:
+            if any(field in vals for field in important_fields):
+                for record in self:
+                    if record.status in ["confirmed", "completed"]:
+                        vals["needs_approval"] = True
+                        vals["status"] = "pending_approval"
+        
+        if "status" in vals and vals["status"] == "confirmed":
+            for record in self:
+                if not record.balance_deducted:
+                    record._check_and_deduct_balance()
+        
+        # Save old state for notification logic
+        old_clients_map = {}
+        for record in self:
+            old_clients_map[record.id] = record.client_ids.ids
+        
+        old_status_map = {record.id: record.status for record in self}
+        
+        # Perform the write
+        result = super().write(vals)
+        
+        # Check if status changed to confirmed or clients were added
+        status_changed_to_confirmed = "status" in vals and vals["status"] == "confirmed"
+        clients_changed = "client_ids" in vals
+        
+        _logger.info(f"Write: status_changed={status_changed_to_confirmed}, clients_changed={clients_changed}")
+        
+        # Send notifications after write
+        for record in self:
+            if record.status == "confirmed":
+                # If clients were added
+                if clients_changed:
+                    old_clients = old_clients_map.get(record.id, [])
+                    new_clients = record.client_ids.ids
+                    added_clients = list(set(new_clients) - set(old_clients))
+                    
+                    if added_clients:
+                        record._send_booking_confirmation(added_clients)
+                
+                # If status changed to confirmed, notify all clients
+                elif status_changed_to_confirmed and record.client_ids:
+                    record._send_booking_confirmation(record.client_ids.ids)
+        
+        return result
+    
+    @api.depends("time_from", "time_to")
+    def _compute_duration(self):
+        """Compute training duration in hours."""
+        for session in self:
+            if session.time_from and session.time_to:
+                delta = session.time_to - session.time_from
+                session.duration = delta.total_seconds() / 3600
+            else:
+                session.duration = 0.0
+    
+    @api.depends("training_type_id", "trainer_id", "center_id", "duration")
+    def _compute_financial(self):
+        """Compute price, trainer cost and revenue."""
+        for session in self:
+            if session.training_type_id and session.trainer_id and session.center_id and session.duration > 0:
+                trainer_rate = self.env["tennis.trainer.rate"].search([
+                    ("trainer_id", "=", session.trainer_id.id),
+                    ("training_type_id", "=", session.training_type_id.id)
+                ], limit=1)
+                
+                center_price = self.env["tennis.center.price"].search([
+                    ("center_id", "=", session.center_id.id),
+                    ("training_type_id", "=", session.training_type_id.id)
+                ], limit=1)
+                
+                if trainer_rate and center_price:
+                    session.trainer_cost = trainer_rate.hourly_rate * session.duration
+                    session.price = center_price.price * session.duration
+                    session.revenue = session.price - session.trainer_cost
+                else:
+                    session.trainer_cost = 0.0
+                    session.price = 0.0
+                    session.revenue = 0.0
+            else:
+                session.trainer_cost = 0.0
+                session.price = 0.0
+                session.revenue = 0.0
+    
+    @api.constrains("trainer_id", "center_id")
+    def _check_trainer_center(self):
+        """Validate trainer belongs to the same center."""
+        for session in self:
+            if session.trainer_id and session.center_id:
+                if session.trainer_id.center_id != session.center_id:
+                    raise ValidationError(
+                        f"Trainer {session.trainer_id.name} is not assigned to {session.center_id.name}!"
+                    )
+    
+    @api.constrains("client_ids", "training_type_id")
+    def _check_client_count(self):
+        """Validate number of clients matches training type."""
+        for session in self:
+            client_count = len(session.client_ids)
+            if session.training_type_id and client_count > 0:
+                if client_count < session.training_type_id.min_clients:
+                    raise ValidationError(
+                        f"Minimum {session.training_type_id.min_clients} clients required!"
+                    )
+                if client_count > session.training_type_id.max_clients:
+                    raise ValidationError(
+                        f"Maximum {session.training_type_id.max_clients} clients allowed!"
+                    )
+    
+    @api.constrains("court_id", "date", "time_from", "time_to")
+    def _check_court_availability(self):
+        """Check court is not already booked."""
+        for session in self:
+            if session.status not in ["cancelled"]:
+                overlapping = self.search([
+                    ("court_id", "=", session.court_id.id),
+                    ("date", "=", session.date),
+                    ("status", "in", ["draft", "pending_approval", "confirmed", "completed"]),
+                    ("id", "!=", session.id),
+                    "|",
+                    "&", ("time_from", "<=", session.time_from), ("time_to", ">", session.time_from),
+                    "&", ("time_from", "<", session.time_to), ("time_to", ">=", session.time_to),
+                ])
+                if overlapping:
+                    raise ValidationError(
+                        f"Court {session.court_id.name} is already booked!"
+                    )
+    
+    @api.constrains("time_from", "time_to", "court_id", "center_id")
+    def _check_working_hours(self):
+        """Validate session is within court working hours."""
+        for session in self:
+            if session.time_from and session.time_to and session.center_id:
+                day_of_week = str(session.date.weekday())
+                
+                working_hours = self.env["tennis.center.working.hours"].search([
+                    ("center_id", "=", session.center_id.id),
+                    ("day_of_week", "=", day_of_week),
+                    ("is_closed", "=", False)
+                ], limit=1)
+                
+                if not working_hours:
+                    raise ValidationError(
+                        f"Center is not open on {session.date.strftime('%A')}!"
+                    )
+                
+                session_start = session.time_from.hour + session.time_from.minute / 60.0
+                session_end = session.time_to.hour + session.time_to.minute / 60.0
+                
+                if session_start < working_hours.time_from or session_end > working_hours.time_to:
+                    start_h = int(working_hours.time_from)
+                    start_m = int((working_hours.time_from % 1) * 60)
+                    end_h = int(working_hours.time_to)
+                    end_m = int((working_hours.time_to % 1) * 60)
+                    raise ValidationError(
+                        f"Session must be within {start_h:02d}:{start_m:02d} - {end_h:02d}:{end_m:02d}"
+                    )
+
+    @api.onchange("center_id", "trainer_id")
+    def _onchange_auto_fill_trainer_fields(self):
+        """Auto-fill center and trainer for trainers on form open."""
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        if current_employee and current_employee.is_trainer:
+            if not self.center_id and current_employee.center_id:
+                self.center_id = current_employee.center_id
+            if not self.trainer_id:
+                self.trainer_id = current_employee
+    
+    @api.onchange("date")
+    def _onchange_date_sync_times(self):
+        """Sync date with times when date changes."""
+        if self.date:
+            if self.time_from:
+                new_time_from = datetime.combine(self.date, self.time_from.time())
+                self.time_from = new_time_from
+            if self.time_to:
+                new_time_to = datetime.combine(self.date, self.time_to.time())
+                self.time_to = new_time_to
+
+    def _check_client_balance(self):
+        """Check if all clients have sufficient balance."""
+        self.ensure_one()
+        
+        if not self.client_ids:
+            raise UserError("Cannot confirm session without clients!")
+        
+        insufficient_clients = []
+        price_per_client = self.price / len(self.client_ids)
+        
+        for client in self.client_ids:
+            if client.balance < price_per_client:
+                insufficient_clients.append(
+                    f"{client.name} (Balance: ${client.balance:.2f}, Required: ${price_per_client:.2f})"
+                )
+        
+        if insufficient_clients:
+            raise UserError("Insufficient balance:\n" + "\n".join(insufficient_clients))
+    
+    def _deduct_client_balance(self):
+        """Deduct session price from client balances."""
+        self.ensure_one()
+        
+        if self.balance_deducted:
+            return
+        
+        if not self.client_ids:
+            return
+        
+        price_per_client = self.price / len(self.client_ids)
+        
+        for client in self.client_ids:
+            client.balance -= price_per_client
+        
+        self.balance_deducted = True
+        self.payment_status = "paid"
+    
+    def _check_and_deduct_balance(self):
+        """Check balance and deduct if sufficient."""
+        self.ensure_one()
+        
+        if self.balance_deducted:
+            return
+        
+        if not self.client_ids:
+            raise UserError("Cannot process without clients!")
+        
+        price_per_client = self.price / len(self.client_ids)
+        
+        insufficient_clients = []
+        for client in self.client_ids:
+            if client.balance < price_per_client:
+                insufficient_clients.append(
+                    f"{client.name} (${client.balance:.2f} < ${price_per_client:.2f})"
+                )
+        
+        if insufficient_clients:
+            raise UserError("Insufficient balance:\n" + "\n".join(insufficient_clients))
+        
+        for client in self.client_ids:
+            client.balance -= price_per_client
+        
+        self.balance_deducted = True
+        self.payment_status = "paid"
+    
+    def action_confirm(self):
+        """Confirm session."""
+        for session in self:
+            if session.needs_approval:
+                raise UserError("This session requires manager approval first!")
+            
+            session._check_client_balance()
+            session.status = "confirmed"
+        
+        return True
+    
+    def action_approve(self):
+        """Approve session (Manager/Director only)."""
+        if not self.env.user.has_group('tennis_club.group_tennis_manager') and \
+           not self.env.user.has_group('tennis_club.group_tennis_director'):
+            raise AccessError(_("Only managers and directors can approve sessions!"))
+        
+        current_employee = self.env["hr.employee"].search([
+            ("user_id", "=", self.env.uid)
+        ], limit=1)
+        
+        for session in self:
+            if session.status != 'pending_approval':
+                raise UserError(_("Only pending sessions can be approved!"))
+            
+            session.write({
+                "needs_approval": False,
+                "approved_by": current_employee.id if current_employee else False,
+                "approval_date": fields.Datetime.now(),
+                "status": "confirmed"
+            })
+            
+            session._check_client_balance()
+        
+        return True
+    
+    def action_complete(self):
+        """Complete session and deduct balance."""
+        for session in self:
+            if session.status != "confirmed":
+                raise UserError("Only confirmed sessions can be completed!")
+            
+            session._deduct_client_balance()
+            session.status = "completed"
+        
+        return True
+    
+    def action_cancel(self):
+        """Cancel session."""
+        for session in self:
+            if session.status == "completed":
+                raise UserError("Cannot cancel completed session!")
+            
+            session.status = "cancelled"
+        
+        return True
+    
+    def action_reset_to_draft(self):
+        """Reset to draft."""
+        for session in self:
+            if session.balance_deducted:
+                raise UserError("Cannot reset - balance already deducted!")
+            
+            session.write({
+                "status": "draft",
+                "needs_approval": False,
+                "approved_by": False,
+                "approval_date": False,
+            })
+        
+        return True
+
+    def action_create_recurring_sessions(self):
+        """Create recurring training sessions."""
+        from dateutil.relativedelta import relativedelta
+        
+        self.ensure_one()
+        
+        if not self.is_recurring:
+            raise UserError(_("This is not a recurring session!"))
+        
+        if not self.recurrence_end_date:
+            raise UserError(_("Please specify end date!"))
+        
+        if self.recurrence_end_date <= self.date:
+            raise UserError(_("End date must be after start date!"))
+        
+        time_slots = [{"time_from": self.time_from, "time_to": self.time_to}]
+        created_sessions = self.env["tennis.training.session"]
+        current_date = self.date
+        sessions_count = 0
+        skipped_count = 0
+        max_sessions = 500
+        
+        while current_date <= self.recurrence_end_date and sessions_count < max_sessions:
+            if self.skip_weekends and current_date.weekday() in [5, 6]:
+                current_date = self._get_next_date(current_date)
+                skipped_count += 1
+                continue
+
+            day_of_week = str(current_date.weekday())
+            working_hours = self.env["tennis.center.working.hours"].search([
+                ("center_id", "=", self.center_id.id),
+                ("day_of_week", "=", day_of_week),
+            ], limit=1)
+            
+            if working_hours and working_hours.is_closed:
+                current_date = self._get_next_date(current_date)
+                skipped_count += 1
+                continue
+
+            for slot_data in time_slots:
+                slot_start = datetime.combine(current_date, slot_data["time_from"].time())
+                slot_end = datetime.combine(current_date, slot_data["time_to"].time())
+                
+                conflicting = self.env["tennis.training.session"].search([
+                    ("court_id", "=", self.court_id.id),
+                    ("date", "=", current_date),
+                    ("time_from", "<", slot_end),
+                    ("time_to", ">", slot_start),
+                    ("status", "!=", "cancelled"),
+                ])
+                
+                if not conflicting:
+                    vals = {
+                        "center_id": self.center_id.id,
+                        "court_id": self.court_id.id,
+                        "trainer_id": self.trainer_id.id,
+                        "training_type_id": self.training_type_id.id,
+                        "date": current_date,
+                        "time_from": slot_start,
+                        "time_to": slot_end,
+                        "client_ids": [(6, 0, self.client_ids.ids)],
+                        "parent_recurring_session_id": self.id,
+                        "status": "draft",
+                        "notes": f"Generated from {self.name}",
+                    }
+                    
+                    new_session = self.create(vals)
+                    created_sessions |= new_session
+                    sessions_count += 1
+                else:
+                    skipped_count += 1
+            
+            current_date = self._get_next_date(current_date)
+        
+        if sessions_count == 0:
+            raise UserError(_("No sessions created - all slots occupied!"))
+        
+        created_sessions |= self
+        message = _("Created %s sessions") % sessions_count
+        if skipped_count > 0:
+            message += _(" (%s skipped)") % skipped_count
+        
+        return {
+            "type": "ir.actions.act_window",
+            "name": _("Recurring Sessions (%s)") % sessions_count,
+            "res_model": "tennis.training.session",
+            "view_mode": "list,form,calendar",
+            "domain": [("id", "in", created_sessions.ids)],
+        }
+    
+    def _get_next_date(self, current_date):
+        """Calculate next date based on pattern."""
+        from dateutil.relativedelta import relativedelta
+        
+        if self.recurrence_pattern == "daily":
+            return current_date + timedelta(days=self.recurrence_interval)
+        elif self.recurrence_pattern == "weekly":
+            return current_date + timedelta(weeks=self.recurrence_interval)
+        elif self.recurrence_pattern == "monthly":
+            return current_date + relativedelta(months=self.recurrence_interval)
+        return current_date + timedelta(days=1)
+
+    @api.model
+    def _send_booking_confirmation(self, client_ids):
+        """Send booking confirmation to specified clients.
+        
+        Args:
+            client_ids: List of res.partner IDs
+        """
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        _logger.info(f"_send_booking_confirmation called with clients: {client_ids}")
+        
+        from .telegram_helper import TelegramHelper
+        helper = TelegramHelper(self.env)
+        
+        clients = self.env['res.partner'].browse(client_ids)
+        
+        for client in clients:
+            if not client.telegram_chat_id or not client.receive_telegram_notifications:
+                continue
+            
+            # Check if notification already sent
+            existing = self.env['telegram.notification'].search([
+                ('partner_id', '=', client.id),
+                ('session_id', '=', self.id),
+                ('message_type', '=', 'booking_confirmation'),
+            ])
+            
+            if existing:
+                _logger.info(f"Notification already sent to {client.name}")
+                continue
+            
+            # Format and send
+            message = helper.format_booking_confirmation(self)
+            
+            # Send notification
+            success = client.send_telegram_notification(
+                message_type="booking_confirmation",
+                message_text=message,
+                session_id=self.id
+            )
+            
+            if success:
+                _logger.info(f"Booking confirmation sent to {client.name}")
+            else:
+                _logger.error(f"Failed to send booking confirmation to {client.name}")
+    
+    def cron_send_training_reminders(self):
+        """Cron: Send training reminders."""
+        from .telegram_helper import TelegramHelper
+        
+        helper = TelegramHelper(self.env)
+        now = datetime.now()
+        tomorrow = now + timedelta(days=1)
+        
+        sessions = self.search([
+            ('status', '=', 'confirmed'),
+            ('time_from', '>=', now),
+            ('time_from', '<=', tomorrow),
+        ])
+        
+        reminders_sent = 0
+        
+        for session in sessions:
+            time_until = session.time_from - now
+            hours_until = time_until.total_seconds() / 3600
+            
+            for client in session.client_ids:
+                if not client.telegram_chat_id or not client.receive_telegram_notifications:
+                    continue
+                
+                if hours_until <= client.notification_hours_before:
+                    existing = self.env['telegram.notification'].search([
+                        ('partner_id', '=', client.id),
+                        ('session_id', '=', session.id),
+                        ('message_type', '=', 'booking_reminder'),
+                    ])
+                    
+                    if not existing:
+                        message = helper.format_reminder(session, client.notification_hours_before)
+                        success = client.send_telegram_notification(
+                            message_type="booking_reminder",
+                            message_text=message,
+                            session_id=session.id
+                        )
+                        
+                        if success:
+                            reminders_sent += 1
+        
+        _logger.info(f"Sent {reminders_sent} reminders")
+        return True
+
+=== models/tennis_training_session_time_slot.py ===
+# -*- coding: utf-8 -*-
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+
+class TennisTrainingSessionTimeSlot(models.Model):
+    """Time slots for recurring training sessions."""
+    
+    _name = "tennis.training.session.time.slot"
+    _description = "Training Session Time Slot"
+    _order = "time_from"
+    
+    session_id = fields.Many2one(
+        "tennis.training.session",
+        string="Training Session",
+        required=True,
+        ondelete="cascade"
+    )
+    
+    time_from = fields.Datetime(
+        string="Start Time",
+        required=True,
+        help="Start time for this slot"
+    )
+    
+    time_to = fields.Datetime(
+        string="End Time",
+        required=True,
+        help="End time for this slot"
+    )
+    
+    duration = fields.Float(
+        string="Duration (hours)",
+        compute="_compute_duration",
+        store=True
+    )
+    
+    @api.depends("time_from", "time_to")
+    def _compute_duration(self):
+        """Calculate duration in hours."""
+        for slot in self:
+            if slot.time_from and slot.time_to:
+                delta = slot.time_to - slot.time_from
+                slot.duration = delta.total_seconds() / 3600.0
+            else:
+                slot.duration = 0.0
+    
+    @api.constrains("time_from", "time_to")
+    def _check_times(self):
+        """Validate time slot times."""
+        for slot in self:
+            if slot.time_to <= slot.time_from:
+                raise ValidationError("End time must be after start time!")
+
+=== models/tennis_training_type.py ===
+# -*- coding: utf-8 -*-
+
+from odoo import api, fields, models
+from odoo.exceptions import ValidationError
+
+
+class TennisTrainingType(models.Model):
+    """Training type definition (Individual, Split, Group)."""
+    
+    _name = "tennis.training.type"
+    _description = "Training Type"
+    _order = "sequence, name"
+
+    # Basic Information
+    name = fields.Char(
+        string="Name",
+        required=True,
+        translate=True,
+        help="Training type name"
+    )
+    code = fields.Char(
+        string="Code",
+        required=True,
+        help="Unique code (individual, split, group)"
+    )
+    
+    # Client Limits
+    min_clients = fields.Integer(
+        string="Min Clients",
+        required=True,
+        default=1,
+        help="Minimum number of clients required"
+    )
+    max_clients = fields.Integer(
+        string="Max Clients",
+        required=True,
+        default=1,
+        help="Maximum number of clients allowed"
+    )
+    
+    # Additional Info
+    description = fields.Text(
+        string="Description",
+        translate=True,
+        help="Training type description"
+    )
+    color = fields.Integer(
+        string="Color",
+        help="Color for calendar view"
+    )
+    sequence = fields.Integer(
+        string="Sequence",
+        default=10,
+        help="Order of display"
+    )
+    active = fields.Boolean(
+        string="Active",
+        default=True
+    )
+    
+    # SQL Constraints
+    _sql_constraints = [
+        (
+            "code_unique",
+            "UNIQUE(code)",
+            "Training type code must be unique!"
+        ),
+    ]
+
+    @api.constrains("min_clients", "max_clients")
+    def _check_clients_count(self):
+        """Validate client count limits are logical."""
+        for record in self:
+            if record.min_clients <= 0:
+                raise ValidationError(
+                    "Minimum clients must be greater than 0!"
+                )
+            if record.max_clients < record.min_clients:
+                raise ValidationError(
+                    "Maximum clients cannot be less than minimum clients!"
+                )
+
