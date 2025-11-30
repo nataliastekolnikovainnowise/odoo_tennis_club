@@ -39,6 +39,22 @@
     </record>
 
     <!-- ========== COURTS ========== -->
+    <!-- Trainer can only see courts from their center -->
+    <record id="rule_court_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Center Courts Only</field>
+        <field name="model_id" ref="model_tennis_court"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('center_id.id', '=', user.employee_ids.center_id.id)]</field>
+    </record>
+
+    <!-- Trainer can only see courts from their center -->
+    <record id="rule_court_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Center Courts Only</field>
+        <field name="model_id" ref="model_tennis_court"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('center_id.id', '=', user.employee_ids.center_id.id)]</field>
+    </record>
+
     <record id="rule_court_manager" model="ir.rule">
         <field name="name">Manager: Own Center Courts Only</field>
         <field name="model_id" ref="model_tennis_court"/>
@@ -76,6 +92,22 @@
     </record>
 
     <!-- ========== TRAINER AVAILABILITY ========== -->
+    <!-- Trainer can only see their own availability -->
+    <record id="rule_availability_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Availability Only</field>
+        <field name="model_id" ref="model_tennis_trainer_availability"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('trainer_id.user_id', '=', user.id)]</field>
+    </record>
+
+    <!-- Trainer can only see their own availability -->
+    <record id="rule_availability_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Availability Only</field>
+        <field name="model_id" ref="model_tennis_trainer_availability"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('trainer_id.user_id', '=', user.id)]</field>
+    </record>
+
     <record id="rule_availability_manager" model="ir.rule">
         <field name="name">Manager: Own Trainers Availability</field>
         <field name="model_id" ref="model_tennis_trainer_availability"/>
@@ -109,6 +141,52 @@
     <record id="rule_rate_director" model="ir.rule">
         <field name="name">Director: All Rates</field>
         <field name="model_id" ref="model_tennis_trainer_rate"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== COURT SCHEDULE ========== -->
+    <!-- Trainer can only see schedule for courts in their center -->
+    <record id="rule_court_schedule_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Center Court Schedule Only</field>
+        <field name="model_id" ref="model_court_schedule"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('court_id.center_id.id', '=', user.employee_ids.center_id.id)]</field>
+    </record>
+
+    <record id="rule_court_schedule_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Court Schedule</field>
+        <field name="model_id" ref="model_court_schedule"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('court_id.center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+
+    <record id="rule_court_schedule_director" model="ir.rule">
+        <field name="name">Director: All Court Schedules</field>
+        <field name="model_id" ref="model_court_schedule"/>
+        <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+    </record>
+
+    <!-- ========== WORKING HOURS ========== -->
+    <!-- Trainer can only see working hours of their center -->
+    <record id="rule_working_hours_trainer" model="ir.rule">
+        <field name="name">Trainer: Own Center Working Hours Only</field>
+        <field name="model_id" ref="model_tennis_center_working_hours"/>
+        <field name="groups" eval="[(4, ref('group_tennis_trainer'))]"/>
+        <field name="domain_force">[('center_id.id', '=', user.employee_ids.center_id.id)]</field>
+    </record>
+
+    <record id="rule_working_hours_manager" model="ir.rule">
+        <field name="name">Manager: Own Center Working Hours</field>
+        <field name="model_id" ref="model_tennis_center_working_hours"/>
+        <field name="groups" eval="[(4, ref('group_tennis_manager'))]"/>
+        <field name="domain_force">[('center_id.manager_id.user_id', '=', user.id)]</field>
+    </record>
+
+    <record id="rule_working_hours_director" model="ir.rule">
+        <field name="name">Director: All Working Hours</field>
+        <field name="model_id" ref="model_tennis_center_working_hours"/>
         <field name="groups" eval="[(4, ref('group_tennis_director'))]"/>
         <field name="domain_force">[(1, '=', 1)]</field>
     </record>
