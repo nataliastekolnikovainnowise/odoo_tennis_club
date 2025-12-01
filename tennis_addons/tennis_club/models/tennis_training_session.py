@@ -406,6 +406,23 @@ class TennisTrainingSession(models.Model):
                 session.duration = delta.total_seconds() / 3600
             else:
                 session.duration = 0.0
+
+    @api.constrains("time_from", "time_to", "duration")
+    def _check_duration(self):
+        """Validate that duration is minimum 1 hour and in 1-hour increments."""
+        for session in self:
+            if session.time_from and session.time_to:
+                # Check minimum duration
+                if session.duration < 1.0:
+                    raise ValidationError(
+                        f"Training session must be at least 1 hour long. Current duration: {session.duration:.2f} hours"
+                    )
+                # Check that duration is in whole hours (1h, 2h, 3h, etc.)
+                if session.duration % 1 != 0:
+                    raise ValidationError(
+                        f"Training session must be in 1-hour increments (1h, 2h, 3h, etc.). "
+                        f"Current duration: {session.duration:.2f} hours"
+                    )
     
     @api.depends("training_type_id", "trainer_id", "center_id", "duration")
     def _compute_financial(self):
