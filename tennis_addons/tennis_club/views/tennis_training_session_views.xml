@@ -165,8 +165,9 @@
                       date_stop="time_to"
                       color="trainer_id"
                       mode="week"
-                      quick_create="1"
-                      event_open_popup="1">
+                      form_view_id="view_tennis_training_session_form"
+                      
+                      >
                 <field name="name"/>
                 <field name="trainer_id"/>
                 <field name="court_id"/>
