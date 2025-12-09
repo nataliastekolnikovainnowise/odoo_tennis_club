@@ -29,6 +29,12 @@
                                 type="object" 
                                 class="oe_stat_button"
                                 icon="fa-refresh"/>
+                        <button string="Add All Trainers" 
+                                name="action_add_all_trainers" 
+                                type="object" 
+                                class="oe_stat_button"
+                                icon="fa-users"
+                                groups="tennis_club.group_tennis_director,tennis_club.group_tennis_manager"/>
                     </div>
                     
                     <group>
@@ -55,7 +61,7 @@
                             <group>
                                 <group string="Total Summary">
                                     <field name="total_sessions" string="Total Sessions" readonly="1"/>
-                                    <field name="total_cost" string="Total Trainer Cost" widget="monetary" readonly="1"/>
+                                    <field name="total_cost" string="Total Cost" widget="monetary" readonly="1"/>
                                     <field name="total_revenue_sum" string="Total Revenue" widget="monetary" readonly="1"/>
                                     <field name="currency_id" invisible="1"/>
                                 </group>
@@ -81,7 +87,6 @@
         </field>
     </record>
     
-    <!-- Action -->
     <record id="action_tennis_trainer_revenue_report" model="ir.actions.act_window">
         <field name="name">Trainer Revenue Reports</field>
         <field name="res_model">tennis.trainer.revenue.report</field>

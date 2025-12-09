@@ -163,6 +163,35 @@ class TennisTrainerRevenueReport(models.Model):
         }
 
 
+    def action_add_all_trainers(self):
+        """Add all trainers to the report lines for selection."""
+        self.ensure_one()
+        
+        # Get all trainers
+        trainers = self.env["hr.employee"].search([("is_trainer", "=", True)])
+        
+        # Filter by manager center if needed
+        user = self.env.user
+        if user.has_group("tennis_club.group_tennis_manager"):
+            employee = self.env["hr.employee"].search([("user_id", "=", user.id)], limit=1)
+            if employee and employee.center_id:
+                trainers = trainers.filtered(lambda t: t.center_id == employee.center_id)
+        
+        # Clear existing lines
+        self.line_ids.unlink()
+        
+        # Create lines for all trainers with zero values
+        for trainer in trainers:
+            self.env["tennis.trainer.revenue.report.line"].create({
+                "report_id": self.id,
+                "trainer_id": trainer.id,
+                "session_count": 0,
+                "total_revenue": 0.0,
+                "total_trainer_cost": 0.0,
+            })
+        
+        return True
+
 class TennisTrainerRevenueReportLine(models.Model):
     """Line for Trainer Revenue Report."""
     
